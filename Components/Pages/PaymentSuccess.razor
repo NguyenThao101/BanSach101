@@ -1,0 +1,68 @@
+﻿@page "/payment/thanh-cong/{productBillId:int}"
+@using BanSach.Components.Model
+@using BanSach.Components.IService
+@inject ICartService CartService
+@inject NavigationManager navigationManager
+@inject IDialogService DialogService
+@inject IBillService BillService
+@using BanSach.Components.Model.ViewModel;
+@using System.Globalization
+<MudGrid Class="pt-2">
+    <MudItem xs="12" sm="12">
+        @if (listProductUserBill != null)
+        {
+            <MudGrid>
+                <MudItem xs="12" sm="12" md="12">
+                    <div style="font-weight: bold; font-size: 1.5em;">Hóa Đơn</div>
+                    <div><strong>ID Hóa Đơn:</strong> @listProductUserBill.First().Bills.OrderCode</div>
+                    <div><strong>Tổng Tiền:</strong> @string.Format(new CultureInfo("vi-VN"), "{0:N0}", listProductUserBill.First().Bills.TotalPrice) vnđ</div>
+                    <div><strong>Số Lượng:</strong> @listProductUserBill.Sum(x => x.Quantity)</div>
+                    <div><strong>Ngày Tạo:</strong> @(listProductUserBill.First().Bills.Created_at?.ToString("HH:mm dd/MM/yyyy") ?? "Không có thông tin")</div>
+                    <div><strong>Trạng thái:</strong> @listProductUserBill.First().Bills.Note</div>
+
+                    <br />
+                    <MudTable Items="listProductUserBill" Hover="true" Dense="true">
+                        <HeaderContent>
+                            <MudTh>Tên sản phẩm</MudTh>
+                            <MudTh>Số lượng</MudTh>
+                            <MudTh>Giá sản phẩm</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Product.ProductName</MudTd>
+                            <MudTd>@context.Quantity</MudTd>
+                            <MudTd>
+                                @Convert.ToDecimal(context.Price).ToString("#,##0") vnđ
+                            </MudTd>
+                           
+                        </RowTemplate>
+                    </MudTable>
+                   
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Color="Color.Error">Hóa đơn không tồn tại.</MudText>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public int productBillId { get; set; }
+    private List<ProductBillDetailDto> listProductUserBill;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Ensure productBill is initialized
+            // productBill = await CartService.GetProductBillById(productBillId);
+            listProductUserBill = await BillService.GetProductsByBillId(productBillId);
+        }
+        catch (Exception ex)
+        {
+            DialogService.ShowMessageBox("Lỗi", $"Không thể tải hóa đơn: {ex.Message}");
+        }
+    }
+   
+}

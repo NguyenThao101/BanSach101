@@ -1,0 +1,128 @@
+﻿@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject IItemManagement ItemManagement
+@inject IDiscountServicecs DiscountService
+@rendermode InteractiveServer
+<MudDialog style="width:500px">
+    <TitleContent>
+        <MudText Typo="Typo.h5">
+            Thêm khuyến mãi
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <!-- Sử dụng MudAutocomplete để tìm kiếm sản phẩm -->
+        <MudAutocomplete T="string" Label="Sản phẩm" Variant="Variant.Outlined" SearchFunc="searchProduct" @bind-Value="ProductName">
+        </MudAutocomplete>
+        <MudTextField @bind-Value="TiLe" Label="Tỷ lệ giảm giá" Variant="Variant.Outlined"></MudTextField>
+
+
+        <MudTextField @bind-Value="discount.SellPrice" Label="Giá bán" Variant="Variant.Outlined" ReadOnly="true" />
+
+        <MudTextField @bind-Value="discount.StartDate" Label="Ngày bắt đầu" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="discount.EndDate" Label="Ngày kết thúc" Variant="Variant.Outlined"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Error" OnClick="CreateDiscount">Tạo</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    [CascadingParameter]
+    public MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Discount discount { get; set; } = new Discount();
+    public List<Product> products = new List<Product>();
+    public Product product = new Product();
+    public double tile { get; set; } = 0;
+    private void Cancel() => MudDialog!.Cancel();
+    private double TiLe
+    {
+        get => discount.Rate;
+        set
+        {
+            discount.Rate = value;
+            TinhGiaBan();
+        }
+    }
+    private string ProductName
+    {
+        get => GetProductName(discount.ProductId);
+        set
+        {
+            var selectedProduct = products.FirstOrDefault(p => p.ProductName == value);
+            if (selectedProduct != null)
+            {
+                discount.ProductId = selectedProduct.ProductId;
+            }
+        }
+    }
+
+    private string GetProductName(int productId)
+    {
+        var product = products.FirstOrDefault(c => c.ProductId == productId);
+        return product?.ProductName ?? string.Empty;
+    }
+ 
+    private async Task CreateDiscount()
+    {
+        DateTime thoiGian = DateTime.Now;
+        if (thoiGian > discount.StartDate)
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Ngày bắt đầu phải lớn hơn hoặc bằng ngày hiện tại!");
+            return;
+        }
+        if (discount.EndDate <= discount.StartDate)
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
+            return;
+        }
+        if (discount != null && discount.Rate > 0)
+        {
+            MudDialog!.Close(DialogResult.Ok(discount));
+        }
+        else
+        {
+            MudDialog!.Close(DialogResult.Cancel());
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        discount.StartDate = DateTime.Now;
+        discount.EndDate = DateTime.Now;
+        products = await ItemManagement.GetAllItem();
+       
+    }
+
+    private async Task<IEnumerable<string>> searchProduct(string value, CancellationToken token)
+    {
+        await Task.Delay(500, token);
+
+        if (string.IsNullOrEmpty(value))
+            return Enumerable.Empty<string>();
+
+        return products
+            .Where(x => !string.IsNullOrEmpty(x.ProductName) &&
+                        x.ProductName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .Select(x => x.ProductName!);
+    }
+    private void TinhGiaBan()
+    {
+        var selectedProduct = products.FirstOrDefault(p => p.ProductId == discount.ProductId);
+
+        if (selectedProduct != null)
+        {
+            discount.SellPrice = (int)Math.Round(selectedProduct.SellPrice * (100 - discount.Rate) / 100);
+        }
+
+        StateHasChanged();
+    }
+
+
+
+}

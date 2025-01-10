@@ -1,0 +1,243 @@
+﻿@page "/xulidon"
+    @using BanSach.Components.Dialog.QlKhuyenmai
+    @using BanSach.Components.IService
+    @using BanSach.Components.Services
+    @using BanSach.Components.Model
+    @using System.Globalization
+@using System.Data
+    @inject IDialogService DialogService
+
+    @inject IItemManagement ItemManagement
+    @inject IBillService BillService
+    @inject IDiscountServicecs DiscountService
+    @inject  IUserService UserService
+    @inject NavigationManager navigationManager
+
+    @inject HttpClient httpClient
+@inject CustomAuthStateProvider AuthStateProvider
+
+
+@if (userRoleId == "2")
+{
+    <h3>Bạn chưa được cấp quyền để xem trang này.</h3>
+}
+else if (userRoleId == "3")
+{
+    <div style="display:flex; padding: 30px 30px 0 30px;">
+        <h2 style="font-family:Arial;">Quản lí đơn hàng </h2>
+        <MudSpacer></MudSpacer>
+
+    </div>
+    <MudTable Items="@bills" Dense="true" Breakpoint="Breakpoint.None" Virtualize="true"
+              Style="white-space:nowrap" Bordered="true" RowClass="cursor-pointer" Striped="true" Hover="true">
+
+        <HeaderContent>
+            <MudTh>Mã </MudTh>
+            <MudTh>ĐV vận chuyển</MudTh>
+            <MudTh>Tổng tiền</MudTh>
+            <MudTh>Thanh Toán</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh>Chú ý</MudTh>
+            <MudTh>Lựa chọn</MudTh>
+
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mã">
+                @context.BillId
+
+            </MudTd>
+            <MudTd DataLabel="ĐV vận chuyển">
+                <div>
+                    @GetDeliveryName(context.DeliveryId)
+                </div>
+            </MudTd>
+            <MudTd DataLabel="Tổng tiền">
+                <div>@string.Format(new CultureInfo("vi-VN"), "{0:N0}", context.TotalPrice)</div>
+            </MudTd>
+
+            <MudTd DataLabel="Thanh toán"><div>@context.PayStatus</div></MudTd>
+            <MudTd DataLabel="Trạng thái"><div>@context.Status</div></MudTd>
+            <MudTd DataLabel="Ghi chú">
+                @context.Note
+            </MudTd>
+            <MudTd DataLabel="Lựa chọn">
+
+                <MudMenu Size="Size.Small" Icon="@Icons.Material.Filled.MoreVert"
+                         AriaLabel="Open user menu">
+                    <MudMenuItem>
+                        <MudButton Style="white-space:nowrap"></MudButton>
+                    </MudMenuItem>
+                    <MudMenuItem><MudButton Style="white-space:nowrap">Xem ảnh</MudButton></MudMenuItem>
+                </MudMenu>
+            </MudTd>
+
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSize="10" @bind-PageIndex="@pageIndex" OnPageChanged="SetPage" />
+        </PagerContent>
+    </MudTable>
+}
+else if (userRoleId == "1")
+{
+    <div style="display:flex; padding: 30px 30px 0 30px;">
+        <h2 style="font-family:Arial;">Quản lí đơn hàng </h2>
+        <MudSpacer></MudSpacer>
+
+    </div>
+    <MudTable Items="@bills" Dense="true" Breakpoint="Breakpoint.None" Virtualize="true"
+              Style="white-space:nowrap" Bordered="true" RowClass="cursor-pointer" Striped="true" Hover="true">
+
+        <HeaderContent>
+            <MudTh>Mã </MudTh>
+            <MudTh>ĐV vận chuyển</MudTh>
+            <MudTh>Tổng tiền</MudTh>
+            <MudTh>Thanh Toán</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh>Chú ý</MudTh>
+            <MudTh>Lựa chọn</MudTh>
+
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mã">
+                @context.BillId
+
+            </MudTd>
+            <MudTd DataLabel="ĐV vận chuyển">
+                <div>
+                    @GetDeliveryName(context.DeliveryId)
+                </div>
+            </MudTd>
+            <MudTd DataLabel="Tổng tiền">
+                <div>@string.Format(new CultureInfo("vi-VN"), "{0:N0}", context.TotalPrice)</div>
+            </MudTd>
+
+            <MudTd DataLabel="Thanh toán"><div>@context.PayStatus</div></MudTd>
+            <MudTd DataLabel="Trạng thái"><div>@context.Status</div></MudTd>
+            <MudTd DataLabel="Ghi chú">
+                @context.Note
+            </MudTd>
+            <MudTd DataLabel="Lựa chọn">
+
+                <MudMenu Size="Size.Small" Icon="@Icons.Material.Filled.MoreVert"
+                         AriaLabel="Open user menu">
+                    <MudMenuItem>
+                        <MudButton Style="white-space:nowrap"></MudButton>
+                    </MudMenuItem>
+                    <MudMenuItem><MudButton Style="white-space:nowrap">Xem ảnh</MudButton></MudMenuItem>
+                </MudMenu>
+            </MudTd>
+
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSize="10" @bind-PageIndex="@pageIndex" OnPageChanged="SetPage" />
+        </PagerContent>
+    </MudTable>
+}
+
+
+
+
+@code {
+    public Product_bill Product_bill = new Product_bill();
+    public List<Product_bill> Product_bills = new List<Product_bill>();
+    public List<Bill> bills = new List<Bill>();
+    public Bill bill = new Bill();
+    public List<Delivery> deliveries = new List<Delivery>();
+    public Delivery delivery = new Delivery();
+    public Address address = new Address();
+    public User user = new User();
+    public List<User> users = new List<User>();
+    public Product product = new Product();
+    public List<Product> products = new List<Product>();
+    private int pageSize = 10;
+    private int pageIndex = 1;
+    DataRow? selectedItem;
+
+    private void SetPage(int index)
+    {
+        pageIndex = index;
+    }
+    private async Task<List<Product>> getAllSach() => await ItemManagement.GetAllItem();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ItemManagement.GetAllItem();
+        Product_bills = await BillService.GetAllProduct_bill();
+        users = await UserService.GetAllUser();
+        bills = await BillService.GetAllbill();
+        deliveries = await BillService.GetAllDelivery();
+
+    }
+
+    private string GetDeliveryName(int DeliveryId)
+    {
+        var deli = deliveries.FirstOrDefault(c => c.DeliveryId == DeliveryId);
+        return deli?.DeliveryName; // Trả về chuỗi rỗng nếu không tìm thấy
+    }
+
+        private async Task UpdateAsync(Discount Discount)
+        {
+            var parameters = new DialogParameters<UpdateDiaLog> { { x => x.discount, Discount } };
+
+            var dialog = await DialogService.ShowAsync<UpdateDiaLog>("Sửa khuyến mãi", parameters);
+            var result = await dialog.Result;
+
+            if (!result!.Canceled)
+            {
+                await DiscountService.EditItem(Discount);
+                await DiscountService.GetAllItem();
+            }
+        }
+        private async Task CreateAsync(Discount Discount)
+        {
+            System.Diagnostics.Debug.WriteLine("dc");
+            var parameters = new DialogParameters<CreateDiaLog> { { x => x.discount, Discount } };
+
+            var dialog = await DialogService.ShowAsync<CreateDiaLog>("Thêm khuyễn mãi", parameters);
+            var result = await dialog.Result;
+            System.Diagnostics.Debug.WriteLine("dc");
+            if (!result!.Canceled)
+            {
+                await DiscountService.EditItem(Discount);
+                await DiscountService.GetAllItem();
+            }
+
+        }
+        private async Task DeleteAsync(Discount Discount)
+        {
+            var parameters = new DialogParameters<DeleteConfirmDiaLog> { { x => x.Discount, Discount } };
+
+            var dialog = await DialogService.ShowAsync<DeleteConfirmDiaLog>("Xóa giảm giá", parameters);
+            var result = await dialog.Result;
+
+            if (!result!.Canceled)
+            {
+                await DiscountService.EditItem(Discount);
+                await DiscountService.GetAllItem();
+            }
+
+        }
+    private string userRoleId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+        }
+    }
+}
+

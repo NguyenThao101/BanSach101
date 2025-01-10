@@ -1,0 +1,320 @@
+﻿@inherits LayoutComponentBase
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject NavigationManager navigationManager
+
+@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
+<style>
+
+    .container-search {
+        display: flex;
+        flex: 1 1 auto;
+        position: relative;
+    }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border: 1px solid #ddd;
+        z-index: 999;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .mud-list-item {
+        padding: 8px;
+        cursor: pointer;
+    }
+
+        .mud-list-item:hover {
+            background-color: #f4f4f4;
+        }
+
+</style>
+<CascadingAuthenticationState>
+    <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" @rendermode="InteractiveServer" />
+    <MudPopoverProvider @rendermode="InteractiveServer" />
+    <MudDialogProvider @rendermode="InteractiveServer" />
+    <MudSnackbarProvider @rendermode="InteractiveServer" />
+    <MudLayout>
+        <!-- Thanh AppBar của MainLayout -->
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            <MudText Typo="Typo.h5" Class="ml-3">
+                <a href="/" style="text-decoration: none; color: inherit;">Nhà Sách Số 1</a>
+            </MudText>
+            <MudSpacer />
+            <!-- Bắt đầu phần AppBar từ Home.razor -->
+            @*   <MudTextField T="string" Icon="@Icons.Material.Filled.Search" Placeholder="Tìm kiếm..."
+            Style=" margin: 0 10px;" /> *@
+            @if (IsHomePage)
+            {
+                <div class="container-search">
+                    <MudTextField T="string"
+                                  Icon="@Icons.Material.Filled.Search"
+                                  Placeholder="Tìm kiếm..."
+                                  Text="@searchQuery"
+                                  TextChanged="this.SetValueAsync"
+                                  Style="margin: 0 10px;" Immediate="true" />
+
+                    @if (!string.IsNullOrWhiteSpace(searchQuery) && FilteredProducts.Any())
+                    {
+                        <div class="search-results">
+                            <MudList T="Product">
+                                @foreach (var product in FilteredProducts)
+                                {
+                                    <MudListItem T="Product">
+                                        <MudNavLink OnClick="() => NavigateToDetail(product.ProductId)" Style="color:#1e1e2d">
+                                            @product.ProductName
+                                        </MudNavLink>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   OnClick="NavigateToSearchPage">
+                            Tìm kiếm
+                        </MudButton>
+                    }
+
+                </div>
+
+            }
+
+            <MudSpacer />
+            <AuthorizeView>
+                <Authorized Context="authContext">
+                    <h3>Xin chào <i>@authContext.User.Identity.Name </i>.</h3>
+                </Authorized>
+            </AuthorizeView>
+            @*  <MudText Class="ml-4">
+                <MudLink Href="/qna" Class="mud-link">Hỏi Đáp</MudLink>
+            </MudText> *@
+            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Href="/cart" />
+            <AuthorizeView>
+                <Authorized>
+                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
+                             AriaLabel="Open user menu">
+
+                        <MudMenuItem @onclick="NavigateToProfile">Hồ sơ</MudMenuItem>
+                        <MudMenuItem @onclick="NavigateToDonhang">Đơn hàng</MudMenuItem>
+                        <MudMenuItem @onclick="Logout">Đăng xuất</MudMenuItem>
+                    </MudMenu>
+                </Authorized>
+                <NotAuthorized>
+                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
+                             AriaLabel="Open user menu">
+                        <MudMenuItem @onclick="() => NavigateToLogin()">Đăng nhập</MudMenuItem>
+                        <MudMenuItem @onclick="() => NavigateToRegister()">Đăng kí</MudMenuItem>
+
+                    </MudMenu>
+                </NotAuthorized>
+            </AuthorizeView>
+            <!-- Nút chuyển đổi chế độ sáng/tối -->
+            <MudIconButton Icon="@DarkLightModeButtonIcon" Color="Color.Inherit" OnClick="@DarkModeToggle" />
+            <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+            <NavMenu />
+        </MudDrawer>
+        <MudMainContent>
+            @Body
+        </MudMainContent>
+    </MudLayout>
+</CascadingAuthenticationState>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+<link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+@code {
+    private bool IsHomePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri) == "";
+
+
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = true;
+    private MudTheme? _theme = null;
+    private string? _value;
+    private string? _result;
+
+    private void NavigateToSearchPage()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            NavigationManager.NavigateTo($"/SearchProduct?query={searchQuery}");
+        }
+    }
+    private void NavigateToLogin()
+    {
+        var returnUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.NavigateTo($"login?returnUrl={returnUrl}");
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+    private void NavigateToProfile()
+    {
+
+        navigationManager.NavigateTo("/profile");
+    }
+    private void NavigateToDonhang()
+    {
+
+        navigationManager.NavigateTo("/donhang");
+    }
+    private async Task SetValueAsync(string? value)
+    {
+        searchQuery = value;
+        await SearchProductsAsync();
+
+    }
+
+    private async Task AfterSetValueAsync()
+    {
+        await Task.Yield();
+        _result = $"Set at {DateTime.Now.ToLongTimeString()}";
+    }
+
+    private List<Product> FilteredProducts = new List<Product>();
+    private string _searchQuery = string.Empty;
+    private string searchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (_searchQuery != value)
+            {
+                _searchQuery = value;
+                OnSearchQueryChanged().ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task OnSearchQueryChanged()
+    {
+        await SearchProductsAsync();
+    }
+
+    private async Task SearchProductsAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var httpClient = ClientFactory.CreateClient("API");
+
+            var result = await httpClient.GetFromJsonAsync<List<Product>>($"api/search/search-product?searchQuery={searchQuery}");
+
+            FilteredProducts = result;
+        }
+        else
+        {
+            FilteredProducts.Clear();
+        }
+    }
+    private void NavigateToDetail(int productId)
+    {
+        searchQuery = string.Empty;
+        FilteredProducts.Clear();
+        NavigationManager.NavigateTo($"/Detail/{productId}");
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _theme = new()
+            {
+                PaletteLight = _lightPalette,
+                PaletteDark = _darkPalette,
+                LayoutProperties = new LayoutProperties()
+            };
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Xử lý hoàn thành prerendering và khởi tạo trạng thái xác thực
+            ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyPrerenderCompleted();
+            ((CustomAuthStateProvider)AuthenticationStateProvider).InitializeAuthenticationStateAsync();
+        }
+    }
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void DarkModeToggle()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+
+    private readonly PaletteLight _lightPalette = new()
+        {
+            Black = "#110e2d",
+            AppbarText = "#ffffff",
+            AppbarBackground = "#e74c3c",
+            DrawerBackground = "#e74c3c",
+            DrawerText = "#ffffff",
+            GrayLight = "#e8e8e8",
+            GrayLighter = "#f9f9f9",
+            DrawerIcon = "#ffffff",
+        };
+
+
+    private readonly PaletteDark _darkPalette = new()
+        {
+            Primary = "#7e6fff",
+            Surface = "#1e1e2d",
+            Background = "#1a1a27",
+            BackgroundGray = "#151521",
+            AppbarText = "#ffffff",
+            AppbarBackground = "#1a1a27", // Bỏ rgba(26,26,39,0.8) và thay bằng màu tối
+            DrawerBackground = "#1a1a27",
+            ActionDefault = "#74718e",
+            ActionDisabled = "#74718e80", // Thay thế màu trắng trong suốt (#9999994d)
+            ActionDisabledBackground = "rgba(255, 255, 255, 0.8);", // Thay thế màu trắng trong suốt (#605f6d4d)
+            TextPrimary = "#b2b0bf",
+            TextSecondary = "#92929f",
+            TextDisabled = "rgba(255, 255, 255, 0.8);", // Thay thế màu trắng trong suốt (#ffffff33)
+            DrawerText = "#92929f",
+            GrayLight = "#2a2833",
+            GrayLighter = "#1e1e2d",
+            Info = "#4a86ff",
+            Success = "#3dcb6c",
+            Warning = "#ffb545",
+            Error = "#ff3f5f",
+            LinesDefault = "#33323e",
+            TableLines = "#33323e",
+            Divider = "#292838",
+            OverlayLight = "#1e1e2dbf", // Giữ overlay nhưng giảm độ trong suốt (từ #1e1e2d80)
+        };
+
+    public string DarkLightModeButtonIcon => _isDarkMode switch
+    {
+        true => Icons.Material.Rounded.AutoMode,
+        false => Icons.Material.Outlined.DarkMode,
+    };
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        ((CustomAuthStateProvider)AuthenticationStateProvider).InitializeAuthenticationStateAsync();
+        StateHasChanged();
+        NavigationManager.NavigateTo("/login");
+    }
+}

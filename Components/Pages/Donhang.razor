@@ -1,0 +1,103 @@
+﻿@page "/donhang"
+@using BanSach.Components.IService
+@using BanSach.Components.Model
+@inject CustomAuthStateProvider AuthenticationStateProvider
+@using BanSach.Components.Data
+@inject AppDbContext _dbContext
+@inject IDialogService DialogService
+@inject IBillService BillService
+@using System.Security.Claims
+@using BanSach.Components.Model.ViewModel
+@using MudBlazor
+
+<style>
+    .clickable-cell {
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .clickable-cell:hover {
+            color: #f0f0f0;
+        }
+
+    .mud-large {
+        width: 100%;
+        max-width: 80em !important;
+    }
+
+    .img-product {
+        max-width: 100px;
+        width: fit-content;
+    }
+
+    .img-show {
+        max-width: 100px;
+    }
+</style>
+
+<!-- Hiển thị danh sách hóa đơn -->
+@foreach (var groupedProducts in products.Where(p => p.Bills.UserID == userId).GroupBy(p => p.Bills.BillId))
+{
+    // Lấy Bill từ phần tử đầu tiên trong nhóm
+    var bill = groupedProducts.First().Bills;
+
+    <MudPaper Elevation="3" Style="margin:20px; padding:20px">
+
+        <MudGrid Style="margin-bottom: 20px" >
+            <MudItem md="6" xs="6">
+                <MudItem><strong>Mã hóa đơn: @groupedProducts.Key</strong></MudItem>
+                <MudItem>Ngày mua: @bill.Created_at</MudItem>
+            </MudItem>
+            <MudSpacer />
+            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right"><strong>@bill.Status</strong></MudItem>
+        </MudGrid>
+
+        <table>
+           
+            <tbody>
+                @foreach (var context in groupedProducts)
+                {
+                    <tr style="margin-bottom:10px">
+                        <td>
+                            <img src="@context.Product.Img" width="100" />
+                        </td>
+                        <td>@context.Product.ProductName</td>
+                        <td>@context.Quantity</td>
+                        <td>@context.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <MudGrid>
+            <MudItem md="12" xs="12" Style="text-align:right">Ngày giao: @bill.Updated_at</MudItem>
+        
+            <MudItem md="6" xs="6"><strong>Tổng tiền:</strong></MudItem>
+            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right"><strong>@bill.TotalPrice</strong></MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private int userId;
+    private List<ProductBillDetailDto> products = new List<ProductBillDetailDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+        }
+        else
+        {
+            userId = 0;
+        }
+
+        // Lấy danh sách sản phẩm theo BillId
+        products = await BillService.GetProductsByBill();
+    }
+}

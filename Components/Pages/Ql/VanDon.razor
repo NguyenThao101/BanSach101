@@ -1,0 +1,337 @@
+﻿@page "/van-don"
+@using System.Security.Claims
+@using BanSach.Components.Model.ViewModel
+@using BanSach.Components.Services
+@using BanSach.Components.IService
+@using Microsoft.AspNetCore.Http
+@using System.Globalization
+@inject IDialogService DialogService
+@inject IBillService BillService
+
+<style>
+    .clickable-cell {
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .clickable-cell:hover {
+            color: #f0f0f0;
+        }
+
+    .mud-large {
+        width: 100%;
+        max-width: 80em !important;
+    }
+
+    .img-product {
+        max-width: 100px;
+        width: fit-content;
+    }
+
+    .img-show {
+        max-width: 100px;
+    }
+</style>
+<MudItem md="11">
+    <MudTable Items="pagedItems" ServerData="LoadServerData" Bordered="true" Dense="true" Hover="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Danh sách đơn hàng</MudText>
+        </ToolBarContent>
+
+        <HeaderContent>
+            <MudTh>Bill ID</MudTh>
+            <MudTh>Tên người dùng</MudTh>
+            <MudTh>Phương thức</MudTh>
+            <MudTh>Tổng giá</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh>Đơn duyệt</MudTh>
+            <MudTh>Tác vụ</MudTh>
+
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd class="clickable-cell" DataLabel="Bill ID">@context.BillId</MudTd>
+            <MudTd DataLabel="Tên người dùng">@context.UserName</MudTd>
+            <MudTd DataLabel="Phương thức">@context.PayStatus</MudTd>
+            <MudTd DataLabel="Tổng giá">@context.TotalPrice.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</MudTd>
+            <MudTd DataLabel="Trạng thái">@context.Status</MudTd>
+            <MudTd DataLabel="Đơn duyệt">
+                @(context.ApproveBill ? "Đã duyệt" : "Chưa duyệt")
+            </MudTd>
+
+
+            <MudTd DataLabel="Tác vụ">
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Open user menu">
+                    <MudMenuItem OnClick="() => HandleApprove(context)">Duyệt đơn</MudMenuItem>
+                    <MudMenuItem OnClick="() => OpenProductDetails(context.BillId)">Cho hàng đi</MudMenuItem>
+                    <MudMenuItem OnClick="() => HandleDelete(context)">Xóa đơn</MudMenuItem>
+                    <MudMenuItem OnClick="() => CompleteApprove(context)">Giao thành công</MudMenuItem>
+                </MudMenu>
+                @* <MudButton Color="Color.Primary" OnClick="() => HandleApprove(context)">Duyệt đơn</MudButton>
+            <MudButton Color="Color.Error" OnClick="() => HandleDelete(context)">Xóa đơn</MudButton> *@
+            </MudTd>
+        </RowTemplate>
+
+        <PagerContent>
+
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudItem>
+<MudDialog @ref="_productDetailsDialog" class="mud-large">
+
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="4" Class="mb-3 mt-3">
+                <MudText Typo="Typo.h6">Bill ID</MudText>
+                <MudText>@productList.FirstOrDefault().Bills.BillId</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4" Class="mb-3 mt-3">
+                <MudText Typo="Typo.h6">Total Price </MudText>
+                <MudText>@productList.FirstOrDefault().Bills.TotalPrice.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4" Class="mb-3 mt-3">
+                <MudText Typo="Typo.h6">Trạng thái </MudText>
+                <MudText>@productList.FirstOrDefault().Bills.Status</MudText>
+            </MudItem>
+            <MudItem xs="12" md="12" Class="mb-3 mt-3">
+                @*  <MudText Typo="Typo.h6">Chọn kho </MudText>
+                <MudSelect T="int" @bind-Value="selectedWarehouseId" OnChange="OnWarehouseChange">
+                    @foreach (var warehouse in WarehouseList)
+                    {
+                        <MudSelectItem T="int" Value="@warehouse.WarehouseID"
+                        Selected="@(warehouse.WarehouseID == productList.FirstOrDefault()?.Bills.WarehouseID)">
+                            @warehouse.NameWarehouse
+                        </MudSelectItem>
+                    }
+                </MudSelect> *@
+
+            </MudItem>
+            <MudItem xs="12" md="12" Class="mb-3 mt-3">
+                <MudText Typo="Typo.h6">Chọn Đơn vị vận chuyển </MudText>
+                <MudSelect T="int" @bind-Value="selectedDeliveryId" OnChange="OnDeliveryChange">
+                    @foreach (var delivery in DeliveryList)
+                    {
+                        <MudSelectItem T="int" Value="@delivery.DeliveryId"
+                                       Selected="@(delivery.DeliveryId == productList.FirstOrDefault()?.Bills.DeliveryId)">
+                            @delivery.DeliveryName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+            </MudItem>
+            <MudItem xs="12" md="12" Class="mb-3 mt-3">
+                <MudText Typo="Typo.h6">Địa chỉ người dùng Address</MudText>
+                <MudText>@(AddressUser != null ? AddressUser.DetailAddress : "Không tìm thấy địa chỉ người dùng")</MudText>
+            </MudItem>
+
+        </MudGrid>
+        <MudText Class="mb-2 mt-3" Typo="Typo.h6" Align="Align.Center">Danh sách sản phẩm</MudText>
+
+        <MudTable Items="productList" Bordered="true" Dense="true" Hover="true">
+
+            <HeaderContent>
+                <MudTh>Ảnh sản phẩm</MudTh>
+                <MudTh>Tên sản phẩm</MudTh>
+                <MudTh>Số lượng</MudTh>
+                <MudTh>Giá</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd class="img-product" DataLabel="Ảnh sản phẩm">
+                    <img src="@context.Product.Img" class="img-show" />
+                </MudTd>
+                <MudTd DataLabel="Tên sản phẩm">@context.Product.ProductName</MudTd>
+                <MudTd DataLabel="Số lượng">@context.Quantity</MudTd>
+                <MudTd DataLabel="Giá">@context.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="CloseDialog">Đóng</MudButton>
+        @if (selectedDeliveryId != productList.FirstOrDefault()?.Bills.DeliveryId)
+        {
+            <MudButton Color="Color.Primary" OnClick="async () => await ConfirmDeliveryChange(productList.FirstOrDefault()?.Bills.BillId)">
+                Xác nhận
+            </MudButton>
+        }
+
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    private int selectedDeliveryId;
+    private int selectedAddressId;
+    private int selectedWarehouseId = 0;
+    private List<ProductBillDetailDto> productList = new List<ProductBillDetailDto>();
+    private MudDialog? _productDetailsDialog;
+    private List<Delivery>? DeliveryList;
+    private List<Warehouse>? WarehouseList;
+    private Address? AddressUser;
+    private List<BillVanDonDTO> pagedItems = new();
+    private TableState? state;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDeliveryList();
+    }
+
+    private async Task LoadDeliveryList()
+    {
+        DeliveryList = await BillService.GetAllDelivery();
+        WarehouseList = await BillService.GetAllWarehouse();
+    }
+    private async Task OpenProductDetails(int billId)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        productList = await BillService.GetProductsByBillId(billId);
+        AddressUser = await BillService.GetAddressUser(productList.FirstOrDefault().Bills.UserID);
+        selectedDeliveryId = productList.FirstOrDefault()?.Bills.DeliveryId ?? 0;
+        selectedAddressId = productList.FirstOrDefault()?.Bills.AddressId ?? 0;
+        selectedWarehouseId = productList.FirstOrDefault()?.Bills.WarehouseID ?? 0;
+
+        await _productDetailsDialog.ShowAsync();
+    }
+
+    private void CloseDialog()
+    {
+        _productDetailsDialog?.CloseAsync(DialogResult.Ok(true));
+    }
+
+    private async Task<TableData<BillVanDonDTO>> LoadServerData(TableState tableState, CancellationToken cancellationToken)
+    {
+        state = tableState;
+
+        try
+        {
+            var result = await BillService.GetBillDetailsAsync(tableState.Page, tableState.PageSize);
+            pagedItems = result.Items;
+            return new TableData<BillVanDonDTO>
+                {
+                    Items = result.Items,
+                    TotalItems = result.TotalCount
+                };
+        }
+        catch (Exception ex)
+        {
+            return new TableData<BillVanDonDTO>
+                {
+                    Items = new List<BillVanDonDTO>(),
+                    TotalItems = 0
+                };
+        }
+    }
+    private async Task HandleApprove(BillVanDonDTO bill)
+    {
+        try
+        {
+
+            bool duyet = await BillService.ApproveProductBillAsync(bill);
+            if (duyet)
+            {
+                await DialogService.ShowMessageBox("Thành Công", "Đơn hàng đã được duyệt thành công.");
+                var updatedBill = pagedItems.FirstOrDefault(b => b.BillId == bill.BillId);
+                if (updatedBill != null)
+                {
+                    updatedBill.ApproveBill = true;
+                }
+
+                StateHasChanged();
+            }
+            else
+            {
+                await DialogService.ShowMessageBox("Lỗi đơn", "Đơn đã được duyệt");
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox("Lỗi đơn", "Đã xảy ra lỗi.");
+
+        }
+    }
+
+    private async Task HandleDelete(BillVanDonDTO bill)
+    {
+        try
+        {
+            bool duyet = await BillService.DeleteProductBillAsync(bill);
+            if (duyet)
+            {
+                await DialogService.ShowMessageBox("Thành Công", "Đơn hàng đã được xóa thành công.");
+                var deletedBill = pagedItems.FirstOrDefault(b => b.BillId == bill.BillId);
+                if (deletedBill != null)
+                {
+                    pagedItems.Remove(deletedBill);
+
+                }
+
+                StateHasChanged();
+            }
+            else
+            {
+                await DialogService.ShowMessageBox("Lỗi đơn", "Đã xảy ra lỗi.");
+
+            }
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox("Lỗi đơn", "Đã xảy ra lỗi.");
+
+        }
+    }
+    private async Task CompleteApprove(BillVanDonDTO bill)
+    {
+        try
+        {
+
+            bool duyet = await BillService.CompleteProductBillAsync(bill);
+            if (duyet)
+            {
+                await DialogService.ShowMessageBox("Thành Công", "Đơn hàng đã được giao thành công.");
+                var updatedBill = pagedItems.FirstOrDefault(b => b.BillId == bill.BillId);
+                if (updatedBill != null)
+                {
+                    updatedBill.ApproveBill = true;
+                    updatedBill.Status = "Completed";
+                }
+
+                StateHasChanged();
+            }
+            else
+            {
+                await DialogService.ShowMessageBox("Lỗi đơn", "Đơn chưa được duyệt");
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox("Lỗi đơn", "Đã xảy ra lỗi.");
+
+        }
+    }
+    private void OnDeliveryChange(int newValue)
+    {
+        selectedDeliveryId = newValue;
+    }
+    private void OnWarehouseChange(int newValue)
+    {
+        selectedWarehouseId = newValue;
+    }
+    private async Task ConfirmDeliveryChange(int? billID)
+
+    {
+        var (delivery, code, message) = await BillService.SetDeliveryBill(billID, selectedDeliveryId, selectedWarehouseId);
+        string dialogTitle = code == 200 ? "Thành Công" : "Lỗi";
+        string dialogMessage = code == 200
+            ? $"Cập nhật thành công"
+            : $"Lỗi: {message}";
+
+        await DialogService.ShowMessageBox(dialogTitle, dialogMessage);
+
+
+    }
+}

@@ -1,0 +1,294 @@
+﻿@page "/cart"
+@using System.Security.Claims
+@using BanSach.Components.Model
+@using BanSach.Components.Services
+@using BanSach.Components.IService
+@using Microsoft.AspNetCore.Http
+@using System.Globalization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IWebHostEnvironment Environment
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject IDiscountServicecs DiscountService
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+@inject ICartService CartService
+
+<style>
+
+    .cart-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    justify-content: space-between; /* Đảm bảo tất cả các phần tử đều được căn đều */
+    }
+
+    .cart-item-image {
+    width: 100px; /* Kích thước ảnh sản phẩm */
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 15px; /* Khoảng cách giữa ảnh và các phần tử còn lại */
+    }
+
+    .cart-item-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+    }
+
+    .cart-item-name {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 5px;
+    }
+
+    .cart-item-price {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    }
+
+    .cart-item-quantity {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-right: 15px; /* Khoảng cách giữa nút số lượng và nút xóa */
+    }
+
+    .mud-numeric-field {
+    padding: 5px 10px;
+    font-size: 12px; /* Giảm kích thước chữ */
+    border-radius: 4px;
+    width: 50px; /* Kích thước nhỏ cho nút điều chỉnh số lượng */
+    height: 30px; /* Chiều cao nhỏ hơn */
+    }
+
+    .cart-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Căn chỉnh nút xóa ở phía bên phải */
+    }
+
+    .cart-item-remove {
+    margin-top: 10px;
+    background-color: #e74c3c !important; /* Màu đỏ cho nút xóa */
+    color: white !important;
+    border-radius: 4px;
+    padding: 8px 15px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    }
+
+    .cart-item-remove:hover {
+    background-color: #c0392b !important; /* Màu đỏ đậm khi hover */
+    }
+
+    .cart-checkout-btn {
+    margin-top: 10px;
+    background-color: #e74c3c !important; /* Màu đỏ cho nút thanh toán */
+    color: white !important;
+    width: 100%;
+    font-size: 16px;
+    padding: 15px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    }
+
+    .cart-checkout-btn:hover {
+    background-color: #c0392b !important; /* Màu đỏ đậm khi hover */
+    }
+
+    .cart-empty-message {
+    text-align: center;
+    font-size: 18px;
+    color: #e74c3c; /* Màu đỏ cho thông báo giỏ hàng trống */
+    }
+
+</style>
+<MudGrid Class="cart-container pt-2">
+    <MudItem xs="12" sm="12">
+        @if (product_carts != null && product_carts.Any())
+        {
+            @foreach (var cartItem in product_carts)
+            {
+                <MudGrid Class="cart-item">
+
+                    <MudItem xs="1" sm="1" md="1" Class="cart-item-quantity"></MudItem>
+                        <MudCheckBox @bind-Value="cartItem.IsSelected" Color="@Color.Primary"></MudCheckBox>
+
+                        <MudItem xs="4" sm="3" md="3">
+                            <MudImage Class="cart-item-image" ObjectFit="ObjectFit.Cover" Width="150" Height="150" Src="@cartItem.Product.Img" />
+                        </MudItem>
+
+
+                        <MudItem md="4" sm="4" xs="4" Class="cart-item-details">
+                            <div class="cart-item-name">@cartItem.Product.ProductName</div>
+                            @{
+                                var discount = discounts.FirstOrDefault(d => d.ProductId == cartItem.ProductId);
+                            }
+
+                            @if (discount != null)
+                            {
+                                <!-- Hiển thị giá gốc (gạch ngang) -->
+                                <div style="text-decoration:line-through; font-size: 13px;">
+                                    @string.Format(new CultureInfo("vi-VN"), "{0:N0}", cartItem.Product.SellPrice) vnđ
+                                </div>
+                                <div style="color:#e74c3c">
+                                    @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Nếu không có giảm giá, chỉ hiển thị giá gốc -->
+                                <div>
+                                    @string.Format(new CultureInfo("vi-VN"), "{0:N0}", cartItem.Product.SellPrice) vnđ
+                                </div>
+                            }
+
+                        </MudItem>
+
+                        <MudItem xs="1" sm="1" md="1" Class="cart-item-quantity">
+
+                            <MudNumericField Style="width: 50px; text-align: center; " T="int" @bind-Value="cartItem.Quantity" Min="1" />
+                        </MudItem>
+
+                        <MudItem xs="2" sm="2" md="2" Class="cart-item-actions">
+
+                            <MudButton Class="cart-item-remove" Variant="Variant.Filled" @onclick="() => RemoveFromCart(cartItem)">
+                                Xóa
+                            </MudButton>
+                        </MudItem>
+                </MudGrid>
+            }
+
+            <MudItem xs="12" sm="12" md="12" Class="pt-4">
+                <MudButton Class="cart-checkout-btn" ButtonType="ButtonType.Submit" Variant="Variant.Filled" @onclick="HandleBuyNow">Mua hàng</MudButton>
+            </MudItem>
+        }
+        else
+        {
+
+        }
+    </MudItem>
+</MudGrid>
+
+
+
+@code {
+    private int userId;
+    private List<Product_cart> product_carts = new List<Product_cart>();
+    private List<Discount> discounts = new List<Discount>();
+    private List<Product_cart> selectedItems = new();
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            discounts = await DiscountService.GetAllDiscountsTodayAsync();
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(userIdClaim, out var parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+            else
+            {
+                userId = 0;
+            }
+            product_carts = await GetAllProductCart();
+
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox("Lỗi", $"Không thể tải giỏ hàng: {ex.Message}");
+        }
+       
+    }
+
+    private async Task<List<Product_cart>> GetAllProductCart()
+    {
+        var carts = await CartService.GetPCartUser(userId);
+        if (carts == null || !carts.Any())
+        {
+            return new List<Product_cart>();
+        }
+        return carts;
+    }
+
+    private async Task HandleBuyNow()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user == null || !user.Identity.IsAuthenticated)
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Vui lòng đăng nhập để tiếp tục.");
+            return;
+        }
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Không thể xác định người dùng.");
+            return;
+        }
+        int userId = int.Parse(userIdClaim.Value);
+
+        if (product_carts == null || !product_carts.Any())
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Không có sản phẩm nào trong giỏ hàng.");
+            return;
+        }
+        selectedItems = product_carts.Where(x => x.IsSelected).ToList();
+
+
+        if (!selectedItems.Any())
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Vui lòng chọn ít nhất một sản phẩm hợp lệ để thanh toán.");
+            return;
+        }
+
+        var (billItems, code, message) = await CartService.CreateBillMain(selectedItems);
+        if (billItems != null)
+        {
+
+            navigationManager.NavigateTo($"/invoice/{billItems.BillId}");
+        }
+        else
+        {
+            await DialogService.ShowMessageBox("Lỗi", "Đặt hàng không thành công. Vui lòng thử lại.");
+        }
+        return;
+    }
+
+    private async Task RemoveFromCart(Product_cart cartItem)
+    {
+        try
+        {
+            await CartService.DeletePCart(cartItem);
+
+            product_carts = await GetAllProductCart();
+
+            await DialogService.ShowMessageBox("Thành công", "Sản phẩm đã được xóa khỏi giỏ hàng.");
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox("Lỗi", $"Không thể xóa sản phẩm: {ex.Message}");
+        }
+    }
+
+
+
+}

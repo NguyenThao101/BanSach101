@@ -1,0 +1,104 @@
+﻿@inject CustomAuthStateProvider AuthStateProvider
+<AuthorizeView>
+    <Authorized>
+        @if (userRoleId != "2")
+        {
+            if (userRoleId == "3")
+            {
+        ﻿<div class="top-row ps-3 navbar navbar-dark">
+                    <div class="container-fluid">
+                    </div>
+                </div>
+
+
+                <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+                    <nav class="flex-column">
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/ql/product" Icon="@Icons.Material.Filled.FormatListBulleted">Danh sách sách</MudNavLink>
+
+                        </div>
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/khuyenmai" Icon="@Icons.Material.Filled.Apps">Khuyến mãi</MudNavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/Ql/Category" Icon="@Icons.Material.Filled.FormatListBulleted">Danh sách danh mục</MudNavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/noibat" Icon="@Icons.Material.Filled.Apps">Ảnh nổi bật</MudNavLink>
+                        </div>
+                        <div class="nav-item px-3">
+
+                            <MudNavLink Href="/doanhthu" Icon="@Icons.Material.Filled.Article">Thống kê doanh thu</MudNavLink>
+                        </div>
+                        <div class="nav-item px-3">
+
+                            <MudNavLink Href="/van-don" Icon="@Icons.Material.Filled.Article">Quản lý đơn</MudNavLink>
+                        </div>
+
+                    </nav>
+                </div>
+            }
+            else if (userRoleId == "1")
+            {
+                <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+                    <nav class="flex-column">
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/ql/product" Icon="@Icons.Material.Filled.FormatListBulleted">Danh sách sách</MudNavLink>
+
+                        </div>
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/khuyenmai" Icon="@Icons.Material.Filled.Apps">Khuyến mãi</MudNavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/Ql/Category" Icon="@Icons.Material.Filled.FormatListBulleted">Danh sách danh mục</MudNavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/tt" Icon="@Icons.Material.Filled.AccountBox">Tài khoản nhân viên</MudNavLink>
+
+                        </div>
+                        <div class="nav-item px-3">
+                            <MudNavLink Href="/noibat" Icon="@Icons.Material.Filled.Apps">Ảnh nổi bật</MudNavLink>
+                        </div>
+                        <div class="nav-item px-3">
+
+                            <MudNavLink Href="/doanhthu" Icon="@Icons.Material.Filled.Article">Thống kê doanh thu</MudNavLink>
+                        </div>
+                        <div class="nav-item px-3">
+
+                            <MudNavLink Href="/van-don" Icon="@Icons.Material.Filled.Article">Quản lý vận đơn</MudNavLink>
+                        </div>
+
+                    </nav>
+                </div>
+            }
+        }
+    </Authorized>
+
+</AuthorizeView>
+
+@code {
+    private string userRoleId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+        }
+    }
+}

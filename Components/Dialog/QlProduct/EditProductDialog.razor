@@ -1,0 +1,293 @@
+﻿@using BanSach.Components.Dialog.QlProduct
+@using BanSach.Components.Model
+@using BanSach.Components.Services
+@using BanSach.Components.IService
+@using Microsoft.AspNetCore.Http
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+<MudDialog style="width:900px">
+    <TitleContent>
+        <MudText Typo="Typo.h5">
+            <div style="display:flex;  justify-content:left ;padding: 30px 30px 0 30px; text-align:center">
+                <h2 style="font-family:Arial;">THÔNG TIN SÁCH</h2>
+                <MudSpacer></MudSpacer>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" aria-label="delete" Color=Color.Error Size="Size.Small" OnClick="@((e) => DeleteAsync(product!))" />
+                <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" OnClick="Update"></MudButton>
+            </div>
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudCard>
+            <MudCardContent>
+                @if (product != null)
+                {
+                    <MudGrid>
+                        <MudItem xs="12" sm="12">
+                            <MudGrid>
+                                <MudItem Class="px-1" xs="6" sm="6" md="6">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" ShrinkLabel Variant="Variant.Outlined" Label="Tên" @bind-Value="product.ProductName" />
+                                </MudItem>
+                                <MudItem Class="px-1" xs="6" sm="6" md="6">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" ShrinkLabel Variant="Variant.Outlined" Label="Tác giả" @bind-Value="product.Author" />
+                                </MudItem>
+                            </MudGrid>                        
+                            <MudGrid>
+                                <MudItem Class="px-1" xs="6" sm="6" md="6">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" ShrinkLabel Variant="Variant.Outlined" Label="Năm sản xuất" @bind-Value="product.Year" />
+                                </MudItem>
+                                <MudItem Class="px-1" xs="6" sm="6" md="6">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" ShrinkLabel Variant="Variant.Outlined" Label="Nhà xuất bản" @bind-Value="product.Publisher" />
+                                </MudItem>
+                            </MudGrid>
+                            <MudGrid>
+                                <MudItem Class="px-1" xs="4" sm="4" md="4">
+                                    <MudNumericField ReadOnly="!edit" Margin="Margin.Dense" HideSpinButtons="true" @bind-Value="product.CostPrice" Label="Giá gốc" Variant="Variant.Outlined" Step="1" />
+                                </MudItem>
+                                <MudItem Class="px-1" xs="4" sm="4" md="4">
+                                    <MudNumericField ReadOnly="!edit" Margin="Margin.Dense" HideSpinButtons="true" @bind-Value="product.SellPrice" Label="Giá bán" Variant="Variant.Outlined" Step="1" />
+                                </MudItem>
+                                <MudItem Class="px-1" xs="4" sm="4" md="4">
+                                    <MudNumericField ReadOnly="!edit" Margin="Margin.Dense" HideSpinButtons="true" @bind-Value="product.Quantity" Label="Số lượng" Variant="Variant.Outlined" Step="1" />
+                                </MudItem>
+                            </MudGrid>
+                            <MudGrid>
+                                <MudItem Class="px-1" xs="6" md="6">
+                                    <MudSelect ReadOnly="!edit" Margin="Margin.Dense" ShrinkLabel Label="Danh mục" Dense="true" Variant="Variant.Outlined" T="int" @bind-Value="product.CategoryId">
+                                        @foreach (var category in Categories)
+                                        {
+                                            <MudSelectItem Value="@category.CategoryId">
+                                                <MudText>@category.CategoryName</MudText>
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem  Class="px-1" xs="6" sm="6" md="6">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" Variant="Variant.Outlined" ShrinkLabel Label="Số trang" @bind-Value="product.PageNumber" />
+                                </MudItem>
+                                <MudItem Class="px-1" xs="12" sm="12" md="12">
+                                    <MudTextField ReadOnly="!edit" Margin="Margin.Dense" Variant="Variant.Outlined" ShrinkLabel="true"
+                                    Label="Mô tả" @bind-Value="product.Description" Lines="4"/>
+                                </MudItem>
+                                <MudItem xs="12" Class="mt-1">
+                                    <MudButton Variant="Variant.Filled"
+                                    Color="Color.Primary"
+                                    StartIcon="@Icons.Material.Filled.CloudUpload">
+                                        Tải ảnh lên
+                                    </MudButton>
+                                </MudItem>
+
+                                @if (!string.IsNullOrEmpty(product.Img))
+                                {
+                                    <MudItem xs="12">
+                                        <MudText Typo="@Typo.h6">Xem trước ảnh:</MudText>
+                                        <img src="@product.Img" alt="Preview" width="180" Height="200" Class="rounded-lg" />
+                                    </MudItem>
+                                }
+                                <MudItem xs="10" sm="10">
+                                    @if (success)
+                                    {
+                                        <MudText Color="Color.Success">Success</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Color="@Color.Error">
+
+                                        </MudText>
+                                    }
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>                      
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudText Color="Color.Error">Sản phẩm không tồn tại.</MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+        @if (!string.IsNullOrEmpty(successMessage) || !string.IsNullOrEmpty(errorMessage))
+        {
+            <MudContainer Class="mt-3">
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <MudAlert Severity="Severity.Success">@successMessage</MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Warning">@errorMessage</MudAlert>
+                }
+            </MudContainer>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton style="color:red" OnClick="EditProduct">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter]
+    private MudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public Product product { get; set; } = new Product();
+    private void SetDragClass() => _dragClass = $"{DefaultDragClass} mud-border-primary";
+    private string? imageDirectory;
+    private void ClearDragClass() => _dragClass = DefaultDragClass;
+    public int categoryId;
+    public string? categoryName;
+    public int productId;
+    private Category category = new Category();
+    private List<Category> Categories = new List<Category>();
+    public List<Product> products = new List<Product>();
+    bool success;
+    string errorMessage = "";
+    string successMessage = "";
+    bool edit = false;
+    private List<string> uploadedImages = new List<string>();
+    private List<IBrowserFile> selectedFiles = new List<IBrowserFile>();
+
+    private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mt-4 mud-width-full mud-height-full";
+
+    private string _dragClass = DefaultDragClass;
+    private readonly List<string> _fileNames = new();
+    private readonly List<string> _imageUrls = new();
+    private bool _isDuplicateDetected = false;
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
+
+    private async Task ClearAsync()
+    {
+        await (_fileUpload?.ClearAsync() ?? Task.CompletedTask);
+        _fileNames.Clear();
+        _imageUrls.Clear();
+        _isDuplicateDetected = false;
+        ClearDragClass();
+        StateHasChanged();
+    }
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        // Kiểm tra nếu thư mục 'images' không tồn tại thì tạo mới
+        if (!Directory.Exists(imageDirectory))
+        {
+            Directory.CreateDirectory(imageDirectory);
+        }
+
+        // Nếu ảnh hiện tại đã tồn tại, xóa nó
+        if (!string.IsNullOrEmpty(product.Img))
+        {
+            string existingFilePath = Path.Combine(imageDirectory, Path.GetFileName(product.Img));
+            if (File.Exists(existingFilePath))
+            {
+                File.Delete(existingFilePath);
+            }
+        }
+
+        // Tạo tên file duy nhất
+        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+        string filePath = Path.Combine(imageDirectory, fileName);
+
+        // Lưu file vào thư mục
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.OpenReadStream().CopyToAsync(stream);
+        }
+
+        // Cập nhật đường dẫn file vào database hoặc object
+        product.Img = "/images/" + fileName;
+    }
+
+    private Task OpenFilePickerAsync() => _fileUpload?.OpenFilePickerAsync() ?? Task.CompletedTask;
+
+    private async void OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        ClearDragClass();
+        var files = e.GetMultipleFiles();
+        _isDuplicateDetected = false;
+
+        foreach (var file in files)
+        {
+            if (_fileNames.Contains(file.Name))
+            {
+                _isDuplicateDetected = true;
+                continue;
+            }
+
+            // Kiểm tra kích thước file có vượt quá 10MB không
+            if (file.Size > 10 * 1024 * 1024)
+            {
+                Snackbar.Add("File quá lớn. Kích thước tối đa cho phép là 10 MB.", Severity.Error);
+                continue;
+            }
+
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+            var base64String = Convert.ToBase64String(buffer);
+            var imageUrl = $"data:{file.ContentType};base64,{base64String}";
+
+            if (_imageUrls.Contains(imageUrl))
+            {
+                _isDuplicateDetected = true;
+                continue;
+            }
+
+            _fileNames.Add(file.Name);
+            if (file.ContentType.StartsWith("image/"))
+            {
+                _imageUrls.Add(imageUrl);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private void Upload()
+    {
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+        Snackbar.Add("Tải lên thành công");
+    }
+
+    private void RemoveImage(string imageUrl)
+    {
+        int index = _imageUrls.IndexOf(imageUrl);
+
+        if (index >= 0)
+        {
+            // Xóa ảnh và tên tệp liên quan
+            _imageUrls.RemoveAt(index);
+            if (index < _fileNames.Count)
+                _fileNames.RemoveAt(index);
+
+            StateHasChanged();
+        }
+    }
+    private void Update(){
+        edit = true;
+    }
+    private async Task DeleteAsync(Product product)
+    {
+        var parameters = new DialogParameters<DeleteP> { { x => x.product, product } };
+
+        var dialog = await DialogService.ShowAsync<DeleteP>("Delete product", parameters);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            await ItemManagement.DeleteItem(product);
+        }
+
+    }
+
+    private void Cancel() => MudDialog!.Cancel();
+
+    private void EditProduct()
+    {
+
+        MudDialog!.Close(DialogResult.Ok(product.ProductId));
+
+    }
+}
+

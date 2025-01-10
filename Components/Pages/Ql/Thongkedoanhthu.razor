@@ -1,0 +1,268 @@
+﻿@page "/doanhthu"
+@using System.Globalization
+@using System.Data
+@using BanSach.Components.Data
+@using BanSach.Components.Model
+@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model.ViewModel
+@inject IConfiguration _config
+@inject IUserService UserService
+@inject IBillService BillService
+@inject CustomAuthStateProvider AuthStateProvider
+
+
+@if (userRoleId == "2")
+{
+    <h3>Bạn chưa được cấp quyền để xem trang này.</h3>
+}
+else if (userRoleId == "3" || userRoleId == "1")
+{
+    <div style="display: flex; justify-content: center; padding-top: 30px;">
+        <h2 style="font-family: Arial;">Thống kê doanh thu tháng @DateTime.Now.Month</h2>
+    </div>
+    <div style="font-size:15px">
+        <div class="d-flex justify-space-between align-center pa-8">
+            <MudPaper Class="pa-16 ma-2" Elevation="3">Người dùng: @users.Count</MudPaper>
+            <MudPaper Class="pa-16 ma-2" Elevation="3">Đơn hàng: @soDon</MudPaper>
+            <MudPaper Class="pa-16 ma-2" Elevation="3">Doanh số: @doanhSo sản phẩm</MudPaper>
+            <MudPaper Class="pa-16 ma-2" Elevation="3">
+                Doanh thu: @doanhThu.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))
+            </MudPaper>
+            <MudPaper Class="pa-16 ma-2" Elevation="3">
+                Dự đoán tháng tới: @duDoanDoanhThu.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))
+            </MudPaper>
+        </div>
+    </div>
+
+    <div Class="py-1 px-1 mt-1">
+        <MudGrid Justify="Justify.FlexStart" Spacing="1">
+            <MudItem xs="6" sm="3" lg="2">
+                <MudDatePicker Label="Từ ngày" Margin="Margin.Dense" Culture="@GetVietNamCulture()"
+                               @bind-Date="fromDate" Variant="Variant.Outlined" Color="Color.Success" MaxDate="@DateTime.Now" />
+            </MudItem>
+            <MudItem xs="6" sm="3" lg="2">
+                <MudDatePicker Label="Đến ngày" Margin="Margin.Dense" Culture="@GetVietNamCulture()"
+                               @bind-Date="toDate" Variant="Variant.Outlined" Color="Color.Secondary" MaxDate="@DateTime.Now" />
+            </MudItem>
+
+        </MudGrid>
+        <MudMenu Class="d-block" LockScroll="true" PositionAtCursor="true" ActivationEvent="MouseEvent.RightClick">
+            <!-- ActivatorContent để kích hoạt menu -->
+            <ActivatorContent>
+                <MudTable Dense="true" Class="mt-3" Bordered Height="auto"
+                          ReadOnly="false" HeaderClass="pa-1" Items="dt.Select()"
+                          T="DataRow" MultiSelection="false" RowClass="pa-0 cursor-pointer" Hover="true" Breakpoint="Breakpoint.None"
+                          @bind-SelectedItem="@selectedItem" HorizontalScrollbar="true">
+
+                    <HeaderContent>
+                        <MudTh>Đối tượng</MudTh>
+                        <MudTh>BillID</MudTh>
+                        <MudTh>Số lượng</MudTh>
+                        <MudTh>Tổng tiền</MudTh>
+                        <MudTh>Trạng thái</MudTh>
+                        <MudTh>Ngày</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Đối tượng">
+                            @context["UserName"].ToString()
+                        </MudTd>
+                        <MudTd DataLabel="BillID">
+                            @context["BillId"]
+                        </MudTd>
+                        <MudTd DataLabel="Số lượng">
+                            @context["TotalPrice"]
+                        </MudTd>
+                        <MudTd Style="text-align:right;" DataLabel="Tổng tiền">
+                            @(string.IsNullOrEmpty(context["TotalPrice"].ToString()) ? "0" : Convert.ToDecimal(context["TotalPrice"]).ToString("#,##0")) vnđ
+                        </MudTd>
+                        <MudTd DataLabel="Trạng thái thanh toán">@context["PayStatus"].ToString()</MudTd>
+                        <MudTd DataLabel="Trạng thái đơn hàng">@context["OrderStatus"].ToString()</MudTd>
+                        <MudTd DataLabel="Ngày đặt">
+                            @(DateTime.Parse(context["BillCreatedAt"].ToString()).ToString("dd/MM/yyyy"))
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[]{10, 20}" />
+                    </PagerContent>
+                </MudTable>
+            </ActivatorContent>
+
+
+        </MudMenu>
+
+    </div>
+    @if (topProducts != null && topProducts.Any())
+    {
+        <MudText Typo="Typo.h6">Sản phẩm bán chạy</MudText>
+        <MudTable Items="topProducts" Hover="true" Bordered>
+            <HeaderContent>
+                <MudTh>Tên sản phẩm</MudTh>
+                <MudTh>Tổng số lượng</MudTh>
+                <MudTh>Giá sản phẩm</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tên sản phẩm">@context.ProductName</MudTd>
+                <MudTd DataLabel="Tổng số lượng">@context.TotalQuantity</MudTd>
+                <MudTd DataLabel="Giá sản phẩm">@context.Price.ToString("#,##0") vnđ </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+}
+
+@code {
+    private Role role = new();
+    private List<Bill> bills = new();
+    private List<TopProductViewModel> topProducts = new();
+    private List<DoanhThuViewModel> doanhThus = new();
+    private User user = new();
+    private List<User> users = new();
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+
+    private decimal doanhThu;
+    private int doanhSo;
+    private int soDon;
+
+    private decimal duDoanDoanhThu = 0;
+    private DateTime? fromDate
+    {
+        get => _fromDate;
+        set
+        {
+            if (_fromDate != value)
+            {
+                _fromDate = value;
+                _ = LoadBills();
+            }
+        }
+    }
+
+    private DateTime? toDate
+    {
+        get => _toDate;
+        set
+        {
+            if (_toDate != value)
+            {
+                _toDate = value;
+                _ = LoadBills();
+            }
+        }
+    }
+    private bool _loading = false;
+    int selectedRowNumber = -1;
+    DataRow? selectedItem;
+    private DataTable dt = new DataTable();
+    private IEnumerable<DataRow> filteredData => dt.AsEnumerable().Where(row =>
+       {
+           var date = DateTime.Parse(row["BillCreatedAt"].ToString());
+           return date >= fromDate && date <= toDate;
+       });
+    public CultureInfo GetVietNamCulture()
+    {
+        var culture = new CultureInfo("vi-VN");
+        DateTimeFormatInfo formatInfo = culture.DateTimeFormat;
+        formatInfo.AbbreviatedDayNames = new[] { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+        formatInfo.DayNames = new[] { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
+        var monthNames = new[]
+        {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12", "",};
+        formatInfo.AbbreviatedMonthNames = formatInfo.AbbreviatedMonthGenitiveNames = formatInfo.MonthNames = monthNames;
+        formatInfo.ShortDatePattern = "dd/MM/yyyy";
+        formatInfo.LongDatePattern = "dddd, dd/MMMM/yyyy";
+        formatInfo.FirstDayOfWeek = DayOfWeek.Sunday;
+        // DB.Set_Connect(_config?.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Không tồn tại chuỗi kết nối 'Default Connection'."));
+        return culture;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        users = await UserService.GetAllUser();
+        var currentDate = DateTime.Now;
+        var result = await BillService.GetDoanhThuThangHienTai(currentDate);
+        Console.WriteLine($"result.doanhThu:{result.doanhThu}");
+        duDoanDoanhThu = DuDoanDoanhThuThangToi(result.doanhThu, 0.05m);
+        await LoadBills();
+    }
+    private string? userRoleId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+        }
+    }
+    private async Task OnDateChanged(DateTime? date)
+    {
+        await LoadBills();
+    }
+
+    private async Task LoadBills()
+    {
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            doanhThus = await BillService.GetAllBillDoanhThu(fromDate.Value, toDate.Value);
+
+            topProducts = await BillService.GetTopProducts(fromDate.Value, toDate.Value);
+
+            doanhThu = doanhThus.Sum(x => x.TotalPrice);
+            doanhSo = topProducts.Sum(b => b.TotalQuantity);
+            soDon = doanhThus.Count();
+
+            dt = ConvertToDataTable(doanhThus);
+            StateHasChanged(); // Cập nhật giao diện
+
+        }
+    }
+    // DÙNG PHƯƠNG PHÁP Linear Growth VỚI TỈ LỆ TĂNG TRƯỞNG LÀ 5%
+    private decimal DuDoanDoanhThuThangToi(decimal doanhThuHienTai, decimal tiLeTangTruong)
+    {
+        // Tính doanh thu tháng tới với tỷ lệ tăng trưởng cố định
+        decimal duDoan = doanhThuHienTai * (1 + tiLeTangTruong);
+
+        return duDoan;
+    }
+    private DataTable ConvertToDataTable(IEnumerable<DoanhThuViewModel> data)
+    {
+        var table = new DataTable();
+
+        // Tạo các cột phù hợp với cấu trúc dữ liệu
+        table.Columns.Add("BillId", typeof(int));
+        table.Columns.Add("TotalQuantity", typeof(int));
+        table.Columns.Add("BillCreatedAt", typeof(DateTime));
+        table.Columns.Add("UserName", typeof(string));
+        table.Columns.Add("TotalPrice", typeof(decimal));
+        table.Columns.Add("PayStatus", typeof(string));
+        table.Columns.Add("OrderStatus", typeof(string));
+
+        // Duyệt qua danh sách và thêm vào DataTable
+        foreach (var item in data)
+        {
+            dynamic bill = item;
+            table.Rows.Add(
+
+                bill.BillId,
+                bill.Quantity,
+                bill.BillCreatedAt,
+                bill.UserName,
+                bill.TotalPrice,
+                bill.PayStatus,
+                bill.OrderStatus.ToString()
+            );
+        }
+
+        return table;
+    }
+}

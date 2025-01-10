@@ -1,0 +1,291 @@
+﻿@page "/"
+@using BanSach.Components.Model
+@using BanSach.Components.Model.ViewModel
+@using MudBlazor
+@using System.Data
+@using System.Diagnostics.Metrics
+@using BanSach.Components.IService
+@using System.Globalization
+@using BanSach.Components.Services
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject IDiscountServicecs DiscountService
+@inject IBillService BillService
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+<PageTitle>Home</PageTitle>
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
+    <!-- Ảnh nổi bật -->
+    <MudItem md="2"></MudItem>
+   <div style="display: flex; justify-content: center; width: 100%; margin-top: 20px;">
+    @if (imgs == null || !imgs.Any())
+    {
+        <MudSpinner Color="Color.Primary" Size="Size.Large" />
+    }
+    else
+    {
+            <MudCarousel TData="string" Interval="4000" InitialItemIndex="0" ShowBullets="false" style="height:300px; width:80%; display: flex; justify-content: center;">
+            @foreach (var img in imgs)
+            {
+                <MudCarouselItem>
+                    <img src="@img?.img" alt="Product" style="width:100%; height: 100%; object-fit: cover; filter: grayscale(0.3);" />
+                    <MudCarouselItemText Style="background-color: rgba(51, 51, 51, 0.7); color: #EAEAEA;">Product</MudCarouselItemText>
+                </MudCarouselItem>
+            }
+        </MudCarousel>
+    }
+</div>
+
+
+   <MudCard>
+    <MudCardContent>
+        @if (discount != null && discounts.Any())
+        {
+            <h2 style="margin-top: 20px;">Khuyến mãi</h2>
+            <MudGrid Mode="GridMode.Flex" Class="anh" Style="display:flex;">
+                @foreach (var item in discounts)
+                {
+                    var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                    if (product != null)
+                    {                         
+                        <MudItem sm="4" md="2" xs="6" Style="margin: 15px;">
+                            <Button Class="button" @onclick="() => Detail(product.ProductId)" Style="width: 100%; padding: 0;">
+                                <div>
+                                    <div Style="position: absolute;color:#e74c3c; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+                                        - @item.Rate%
+                                    </div>
+                                    <img ObjectFit="ObjectFit.Cover" Src="@product.Img" Height="200" Class="rounded-lg" />
+                                </div>
+                                <div style="width: 100%; overflow: hidden; white-space: nowrap;">
+                                    @product.ProductName
+                                </div>
+                                <div style="text-decoration:line-through; font-size: 13">
+                                    @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                </div>
+                                <div style="color: #e74c3c">
+                                    @string.Format(new CultureInfo("vi-VN"), "{0:N0}", item.SellPrice) vnđ
+                                </div>
+                            </Button>
+                        </MudItem>
+                    }
+                }  
+            </MudGrid>
+        }
+    </MudCardContent>
+</MudCard>
+
+<MudCard>
+    <MudCardContent>
+        @if (topProducts != null && topProducts.Any())
+        {
+            <h2 style="margin-top: 20px;">Sách bán chạy</h2>
+            <MudGrid Mode="GridMode.Flex" Class="anh" Style="display:flex;">
+                @foreach (var item in topProducts)
+                {
+                    var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                    var discount = discounts.FirstOrDefault(d => d.ProductId == item.ProductId);
+
+                    if (product != null)
+                    {
+                        <MudItem sm="4" md="2" xs="6" Style="margin: 15px;">
+                            <Button Class="button" @onclick="() => Detail(product.ProductId)" Style="width: 100%; padding: 0;">
+                                <div>
+                                    @if (discount != null && discount.ProductId == item.ProductId)
+                                    {
+                                        <div Style="position: absolute;color:#e74c3c; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+                                            - @discount.Rate%
+                                        </div>
+                                    }
+                                    <img ObjectFit="ObjectFit.Cover" Src="@product.Img" Height="200" Class="rounded-lg" />
+                                </div>
+                                <div style="width: 100%; overflow: hidden; white-space: nowrap;">
+                                    @product.ProductName
+                                </div>
+
+                                @if (discount != null && discount.ProductId == item.ProductId)
+                                {
+                                    <!-- Nếu có khuyến mãi, giá cũ sẽ bị gạch và giá mới sẽ màu đỏ -->
+                                    <div style="text-decoration:line-through; font-size: 13">
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                    </div>
+                                    <div style="color: #e74c3c;">
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Nếu không có khuyến mãi, hiển thị giá bình thường -->
+                                    <div>
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                    </div>
+                                }
+                            </Button>
+                        </MudItem>
+                    }
+                }
+            </MudGrid>
+        }
+    </MudCardContent>
+</MudCard>
+
+  
+<MudCard>
+    <MudCardContent>
+        @if (products != null && products.Any())
+        {
+            <h2 style="margin-top: 20px;">Tất cả sách</h2>
+            <MudGrid Mode="GridMode.Flex" Class="anh" Style="display:flex;">
+                @foreach (var item in products)
+                {
+                    var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                    var discount = discounts.FirstOrDefault(d => d.ProductId == item.ProductId);
+
+                    if (product != null)
+                    {
+                        <MudItem sm="4" md="2" xs="6" Style="margin: 15px;">
+                            <Button Class="button" @onclick="() => Detail(product.ProductId)" Style="width: 100%; padding: 0;">
+                                <div>
+                                    @if (discount != null)
+                                    {
+                                        <div Style="position: absolute;color:#e74c3c; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+                                            - @discount.Rate%
+                                        </div>
+                                    }
+                                    <img ObjectFit="ObjectFit.Cover" Src="@product.Img" Height="200" Class="rounded-lg" />
+                                </div>
+                                <div style="width: 100%; overflow: hidden; white-space: nowrap;">
+                                    @product.ProductName
+                                </div>
+
+                                @if (discount != null)
+                                {
+                                    <!-- Nếu có khuyến mãi, giá cũ sẽ bị gạch và giá mới sẽ màu đỏ -->
+                                    <div style="text-decoration:line-through; font-size: 13">
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                    </div>
+                                    <div style="color: #e74c3c;">
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Nếu không có khuyến mãi, hiển thị giá bình thường -->
+                                    <div>
+                                        @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                    </div>
+                                }
+                            </Button>
+                        </MudItem>
+                    }
+                }
+            </MudGrid>
+        }
+    </MudCardContent>
+</MudCard>
+
+
+    <!-- Footer Section -->
+    <MudPaper Class="pa-4 mt-4" Style="text-align: center; padding: 10px;">
+        <MudText Class="mud-typography-body2">Liên hệ: contact@webbookapp.com</MudText>
+        <MudText Class="mud-typography-body2">Điện thoại: 0123-456-789</MudText>
+        <MudText Class="mud-typography-body2">Địa chỉ: số 141, Chiến Thắng, Thanh Trì, Hà Nội</MudText>
+    </MudPaper>
+
+</MudContainer>
+<style>
+    .button {
+        margin: 10px 0 0 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: Arial;
+        font-weight: bold;
+    }
+
+        .button:hover {
+            transform: scale(1.05);
+        }
+</style>
+<AuthorizeView>
+    <Authorized>
+        <!--Start of Tawk.to Script-->
+        <script type="text/javascript">
+            var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+            (function () {
+            var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+            s1.async = true;
+            s1.src = 'https://embed.tawk.to/6761ae4349e2fd8dfef98155/1ifap1ema';
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            s0.parentNode.insertBefore(s1, s0);
+            })();
+        </script>
+        <!--End of Tawk.to Script-->
+    </Authorized>
+</AuthorizeView>
+@code {
+    private TopProductViewModel top = new TopProductViewModel();
+    private List<TopProductViewModel> topProducts = new();
+    private Discount discount = new Discount();
+    private List<Discount> discounts = new List<Discount>();
+    private List<Product> products = new List<Product>();
+    private Product product = new Product();
+    private Img img = new Img();
+    private List<Img> imgs = new List<Img>();
+    private int imgId;
+    private Category category = new Category();
+    private List<Category> categories = new List<Category>();
+    private async Task<List<Product>> getAllSach() => await ItemManagement.GetAllItem();
+    private string searchString1 = "";
+    private string? categoryName;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Khởi tạo danh sách nếu các dịch vụ trả về null
+        DateTime toDateOnly = DateTime.Now.Date;
+        DateTime fromDateOnly = toDateOnly.AddMonths(-1);
+        products = await getAllSach();
+        categories = await ItemManagement.GetAllCategogy();
+        discounts = await DiscountService.GetAllDiscountsTodayAsync();
+        // Đảm bảo imgs được tải đầy đủ trước khi hiển thị
+        imgs = await ItemManagement.GetLastFourImgsAsync();
+         topProducts = await BillService.GetTopProducts(fromDateOnly, toDateOnly);
+        // Khi imgs đã được tải xong, gọi StateHasChanged để cập nhật giao diện
+        StateHasChanged();
+    }
+
+    private void Detail(int productId)
+    {
+        navigationManager.NavigateTo($"/Detail/{productId}");
+    }
+    private void Test()
+    {
+        navigationManager.NavigateTo("/test");
+    }
+    private bool FilterFunc1(Product Product) => FilterFunc(Product, searchString1);
+
+    private bool FilterFunc(Product? product, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (product == null)
+            return false;
+
+        if (product.ProductName != null &&
+            product.ProductName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (product.Author != null && product.Author.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (product.Publisher != null && product.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (categoryName != null && category.CategoryName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        string combinedValues = $"{product.CostPrice} {product.SellPrice} {product.CategoryId} {product.Year}{product.PageNumber} ";
+        return combinedValues.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+}

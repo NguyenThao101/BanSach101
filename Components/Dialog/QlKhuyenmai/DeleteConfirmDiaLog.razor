@@ -1,0 +1,37 @@
+﻿@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+<MudDialog>
+    <TitleContent>
+        Thông báo
+    </TitleContent>
+    <DialogContent><DeleteConfirmDiaLog />
+        Bạn có muốn xóa mặt hàng này không?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton style="color:red" OnClick="DeleteDiscount">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter]
+    private MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Discount Discount { get; set; } = new Discount();
+
+    private void Cancel() => MudDialog!.Cancel();
+
+    private void DeleteDiscount()
+    {
+
+        MudDialog!.Close(DialogResult.Ok(Discount));
+    }
+}
+

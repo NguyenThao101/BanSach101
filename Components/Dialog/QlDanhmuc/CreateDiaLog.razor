@@ -1,0 +1,81 @@
+﻿@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject IItemManagement ItemManagement
+@rendermode InteractiveServer
+<MudDialog style="width:500px">
+    <TitleContent>
+        <MudText Typo="Typo.h5">
+            Thêm danh mục
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="category.CategoryName" Label="Outlined" Variant="Variant.Outlined"></MudTextField>
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudFab Color="Color.Primary"
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Load picture" />
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+
+            @if (!string.IsNullOrEmpty(category.Img))
+            {
+                <MudItem xs="12">
+                    <MudText Typo="@Typo.h6">Xem trước ảnh:</MudText>
+                    <img src="@category.Img" alt="Preview" width="180" Height="200" Class="rounded-lg" />
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" OnClick="createCategory">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    private string? imageDirectory;
+    [Parameter]
+    [CascadingParameter]
+    public MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Category category { get; set; } = new Category();
+    private IList<IBrowserFile> _files = new List<IBrowserFile>();
+
+    // Phương thức tải lên ảnh
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        // Kiểm tra nếu thư mục 'images' không tồn tại thì tạo mới
+        if (!Directory.Exists(imageDirectory))
+        {
+            Directory.CreateDirectory(imageDirectory);
+        }
+
+        // Tạo tên file duy nhất
+        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+        string filePath = Path.Combine(imageDirectory, fileName);
+
+        // Lưu file vào thư mục
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.OpenReadStream().CopyToAsync(stream);
+        }
+
+        // Cập nhật đường dẫn file vào database hoặc object
+        category.Img = "/images/" + fileName;
+    }
+    private void Cancel() => MudDialog!.Cancel();
+
+    private void createCategory()
+    {
+
+        MudDialog!.Close(DialogResult.Ok(category));
+    }
+
+}

@@ -1,0 +1,311 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.WebUtilities
+@inject IAuthService AuthService
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+@using BanSach.Components.Model
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using BanSach.Components.IService
+@inject ICartService CartService
+<PageTitle>Login</PageTitle>
+
+
+
+<body>
+    <div class="form-container">
+        <div class="col col-1">
+            <div class="image-layer">
+                <img src="../images/img/white-outline.png" class="form-image-main" />
+                <img src="../images/img/dots.png" class="form-image dots" />
+                <img src="../images/img/coin.png" class="form-image coin" />
+                <img src="../images/img/spring.png" class="form-image spring" />
+                <img src="../images/img/rocket.png" class="form-image rocket" />
+                <img src="../images/img/cloud.png" class="form-image cloud" />
+                <img src="../images/img/stars.png" class="form-image stars" />
+
+            </div>
+
+        </div>
+        <div class="col col-2">
+
+            <div class="login-form">
+                <div class="form-title">
+                    <h3>Đăng nhập</h3>
+                </div>
+
+                <EditForm Model="user" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="form-inputs">
+                        <div class="input-box">
+                            <label for="email">Email</label>
+                            <InputText id="email" @bind-Value="user.Email" class="input-field" type="email" />
+                            <ValidationMessage For="@(() => user.Email)" />
+                        </div>
+
+                        <div class="input-box">
+                            <label for="password">Mật khẩu</label>
+                            <InputText id="password" @bind-Value="user.Password" class="input-field" type="password" />
+                            <ValidationMessage For="@(() => user.Password)" />
+                        </div>
+                        <button type="submit" class="input-submit">
+                            <span>Đăng nhập</span><i class="bx bx-right-arrow-alt"></i>
+                        </button>
+                        <div class="text-danger">
+                            <span>@errorMessage</span>
+                        </div>
+                    </div>
+                </EditForm>
+                <div class="forgot-pass">
+                    <a href="#">Quên mật khẩu?</a>
+                </div>
+                <div class="register">
+                    <span>Bạn chưa có tài khoản?</span>
+                    <NavLink class="register-link" href="/register">Đăng ký ngay</NavLink>
+                </div>
+                <div class="social-login">
+                    <MudButton class="social-google" OnClick="LoginWithGoogle">
+                        <i class="bx bxl-google"></i> Login with Google
+                    </MudButton>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+<style>
+    body {
+        background: url("../images/img/1.jpg");
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 0 20px;
+    }
+
+    .form-container {
+        display: flex;
+        width: 1000px;
+        height: 600px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 30px;
+        backdrop-filter: blur(20px);
+    }
+
+    .col-1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        width: 55%;
+        background: rgba(255,255,255,0.3);
+        backdrop-filter: blur(30px);
+        border-radius: 0 30% 20% 0;
+        transition: border-radius .3s;
+    }
+
+    .image-layer {
+        position: relative;
+    }
+
+    .form-image-main {
+        width: 400px;
+        animation: scale-up 3s ease-in-out alternate infinite;
+    }
+
+    .form-image {
+        position: absolute;
+        left: 0;
+        width: 400px;
+    }
+
+    .coin {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    .spring {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    .dots {
+        animation: scale-up 3s ease-in-out alternate infinite;
+    }
+
+    .rocket {
+        animation: up-down 3s ease-in-out alternate infinite;
+    }
+
+    .cloud {
+        animation: left-right 3s ease-in-out alternate infinite;
+    }
+
+    .stars {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    @@keyframes left-right {
+        to {
+            transform: translateX(10px);
+        }
+    }
+
+    @@keyframes up-down {
+        to {
+            transform: translateY(10px);
+        }
+    }
+
+    @@keyframes scale-down {
+        to {
+            transform: scale(0.95);
+        }
+    }
+
+    @@keyframes scale-up {
+        to {
+            transform: scale(1.05);
+        }
+    }
+
+    .col-2 {
+        position: relative;
+        width: 45%;
+        padding: 20px;
+    }
+
+    .login-form {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 20px;
+        width: 100%;
+    }
+
+    .form-title {
+        margin-bottom: 20px;
+        color: #fff;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .form-inputs {
+        width: 100%;
+    }
+
+    .input-box {
+        margin-bottom: 15px;
+    }
+
+    .input-field {
+        width: 100%;
+        height: 50px;
+        padding: 0 15px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 10px;
+        outline: none;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .input-submit {
+        width: 100%;
+        height: 50px;
+        color: #fff;
+        background: #21264D;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .input-submit:hover {
+            transform: translateY(-3px);
+        }
+
+    .forgot-pass,
+    .register {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .register-link {
+        margin-left: 5px;
+        color: #fff;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .social-login {
+        margin-top: 20px;
+    }
+
+    .social-google {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        height: 50px;
+        color: #fff;
+        background: #db4437;
+        border-radius: 10px;
+        transition: 0.3s;
+        cursor: pointer;
+    }
+
+        .social-google:hover {
+            transform: translateY(-3px);
+        }
+</style>
+@code {
+    private UserLogin user = new UserLogin();
+    private string errorMessage = string.Empty;
+    private string returnUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var url))
+        {
+            returnUrl = url;
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.Login(user.Email, user.Password);
+        if (result.Success)
+        {
+            errorMessage = string.Empty;
+
+            await LocalStorage.SetItemAsync("authToken", result.Data);
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+            StateHasChanged();
+            if (NavigationManager.Uri.Contains("register"))
+            {
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                NavigationManager.NavigateTo(returnUrl);
+            }
+        }
+        else
+        {
+            errorMessage = result.Message;
+        }
+    }
+
+    private void LoginWithGoogle()
+    {
+        NavigationManager.NavigateTo("api/login/google", true);
+    }
+}

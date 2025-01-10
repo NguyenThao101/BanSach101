@@ -1,0 +1,205 @@
+﻿@page "/qna"
+@using BanSach.Components.Services.QNAService
+@inject IQNAService QNAService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+        <MudPaper Class="p-4">
+            <MudText Typo="Typo.h5">Q&A</MudText>
+
+            @* Form nhập câu hỏi mới *@
+            @if (!string.IsNullOrWhiteSpace(currentUserEmail))
+            {
+                <MudTextField @bind-Value="NewQuestion" Placeholder="Nhập câu hỏi của bạn..." Variant="Variant.Outlined" Class="mt-2" />
+                <MudButton OnClick="AddQuestion" Color="Color.Primary" Class="mt-2">Đặt câu hỏi</MudButton>
+            }
+            else
+            {
+                <h5>
+                    Bạn cần
+                    <a href="login" style="text-decoration: underline;">đăng nhập</a>
+                    hoặc
+                    <a href="register" style="text-decoration: underline;">đăng kí</a>
+                    để đặt câu hỏi.
+                </h5>
+            }
+
+            @* Thêm nút tra từ khóa và ô nhập từ khóa *@
+
+            <MudTextField @bind-Value="SearchQuery" Placeholder="Nhập từ khóa để tìm kiếm..." Variant="Variant.Outlined" Class="mt-2" />
+            <MudButton OnClick="SearchQuestions" Color="Color.Primary" Class="mt-2">Tra từ khóa</MudButton>
+
+            <MudList T="QNA">
+                @foreach (var item in FilteredQuestions)
+                {
+                    <MudListItem T="QNA">
+                        <MudText>
+                            <strong>@item.Question</strong> <br />
+                            <small style="color: gray;">Được hỏi bởi: @item.Email</small><br />
+
+                            @* Hiển thị icon để ẩn/hiện câu trả lời *@
+                            <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Title="Add" OnClick="() => ToggleAnswerVisibility(item.Id)" />
+
+                            @* Nếu câu trả lời được hiển thị thì mới hiển thị câu trả lời *@
+                            @if (isAnswerVisible.ContainsKey(item.Id) && isAnswerVisible[item.Id])
+                            {
+                                @if (!string.IsNullOrEmpty(item.Answer))
+                                {
+                                    <span><strong>Câu trả lời:</strong> @item.Answer</span> <br />
+                                    <small style="color: gray;">Được trả lời bởi: @item.AnswererEmail</small>
+                                }
+                                else
+                                {
+                                    <span><strong>Chưa có câu trả lời.</strong></span>
+                                }
+
+                                @* Hiển thị phần nhập câu trả lời *@
+                                @if (!string.IsNullOrWhiteSpace(currentUserEmail))
+                                {
+                                    <MudTextField @bind-Value="NewAnswer" Placeholder="Nhập câu trả lời..." Variant="Variant.Outlined" Class="mt-2" />
+                                    <MudButton OnClick="() => AddAnswer(item.Id)" Color="Color.Primary" Class="mt-2">Nhập câu trả lời</MudButton>
+
+                                    <MudButton OnClick="() => DeleteQuestion(item.Id)" Color="Color.Error" Class="mt-2"
+                                               Disabled="@(item.Email != currentUserEmail)">Xóa câu hỏi</MudButton>
+                                }
+                                else
+                                {
+                                    <h5>
+                                        Bạn cần
+                                        <a href="login" style="text-decoration: underline;">đăng nhập</a>
+                                        hoặc
+                                        <a href="register" style="text-decoration: underline;">đăng kí</a>
+                                        để nhập câu trả lời.
+                                    </h5>
+                                }
+                            }
+                            <br />
+                            <small style="color: gray;">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                        </MudText>
+                    </MudListItem>
+                }
+            </MudList>
+
+        </MudPaper>
+@code {
+    private List<BanSach.Components.Model.QNA> Questions = new List<BanSach.Components.Model.QNA>();
+    private List<BanSach.Components.Model.QNA> FilteredQuestions = new List<BanSach.Components.Model.QNA>();
+    private string NewAnswer;
+    private string NewQuestion;
+    private string SearchQuery;
+    private string currentUserEmail;
+
+    private Dictionary<int, bool> isAnswerVisible = new Dictionary<int, bool>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        if (user?.Identity?.Name != null)
+        {
+            currentUserEmail = user.Identity.Name;
+        }
+        else
+        {
+            currentUserEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUserEmail");
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentUserEmail))
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "currentUserEmail", currentUserEmail);
+        }
+
+        Questions = await QNAService.GetQuestionsAsync();
+        FilteredQuestions = Questions;
+
+        foreach (var question in Questions)
+        {
+            isAnswerVisible[question.Id] = false;
+        }
+    }
+
+    private async Task AddQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(NewQuestion))
+        {
+            Snackbar.Add("Bạn chưa nhập câu hỏi.", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(currentUserEmail))
+        {
+            Snackbar.Add("Bạn cần đăng nhập để đặt câu hỏi.", Severity.Warning);
+            return;
+        }
+
+        await QNAService.AddQuestionAsync(NewQuestion, currentUserEmail);
+        Questions = await QNAService.GetQuestionsAsync();
+        FilteredQuestions = Questions;
+        NewQuestion = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task AddAnswer(int questionId)
+    {
+        if (string.IsNullOrWhiteSpace(currentUserEmail))
+        {
+            Snackbar.Add("Bạn cần đăng nhập để trả lời câu hỏi.", Severity.Warning);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(NewAnswer))
+        {
+            await QNAService.AddAnswerAsync(questionId, NewAnswer, currentUserEmail);
+            Questions = await QNAService.GetQuestionsAsync();
+            FilteredQuestions = Questions;
+            NewAnswer = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteQuestion(int questionId)
+    {
+        var questionToDelete = Questions.FirstOrDefault(q => q.Id == questionId);
+
+        if (questionToDelete != null && questionToDelete.Email == currentUserEmail)
+        {
+            var confirmDelete = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "Bạn có chắc chắn muốn xóa câu hỏi này?" });
+            if (confirmDelete)
+            {
+                await QNAService.DeleteQuestionAsync(questionId);
+                Questions = await QNAService.GetQuestionsAsync();
+                FilteredQuestions = Questions;
+            }
+        }
+        else
+        {
+            Snackbar.Add("Bạn không có quyền xóa câu hỏi này.", Severity.Error);
+        }
+    }
+
+    private void ToggleAnswerVisibility(int questionId)
+    {
+        if (isAnswerVisible.ContainsKey(questionId))
+        {
+            isAnswerVisible[questionId] = !isAnswerVisible[questionId];
+        }
+        else
+        {
+            isAnswerVisible[questionId] = false;
+        }
+        StateHasChanged();
+    }
+
+    private void SearchQuestions()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            FilteredQuestions = Questions; // Nếu không có từ khóa tìm kiếm, hiển thị tất cả câu hỏi
+        }
+        else
+        {
+            FilteredQuestions = Questions.Where(q => q.Question.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        StateHasChanged();
+    }
+}

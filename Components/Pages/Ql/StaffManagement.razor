@@ -1,0 +1,283 @@
+﻿@page "/tt"
+ @using BanSach.Components.Dialog.QlNhanVien
+@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject IUserService UserService
+@inject NavigationManager navigationManager
+@inject HttpClient httpClient
+@inject CustomAuthStateProvider AuthStateProvider
+
+
+@if (userRoleId == "2")
+{
+    <h3>Bạn chưa được cấp quyền để xem trang này.</h3>
+}
+else if (userRoleId == "3")
+{
+    <h3>Bạn chưa được cấp quyền để xem trang này</h3>
+}
+else if (userRoleId == "1")
+{
+    <div style="display:flex; padding: 30px 30px 0 30px;">
+        <h2 style="font-family:Arial;">Quản lí nhân viên </h2>
+        <MudSpacer></MudSpacer>
+        <MudButton OnClick="Add" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Thêm</MudButton>
+
+    </div>
+    <MudContainer Style="margin: 0 auto; padding: 10px; text-align: center;">
+        <MudGrid>
+            <MudItem md="4" sm="4" xs="6">
+                <MudTextField T="string" @bind-Value="@user.Username" Label="Tên đăng nhập" Variant="Variant.Outlined"
+                              ReadOnly="!edit" Margin="Margin.Dense" Required="true"
+                              RequiredError="Tên đăng nhập không được để trống!" />
+            </MudItem>
+            <MudItem md="4" sm="4" xs="6">
+                <MudTextField T="string" @bind-Value="@user.Password" Label="Mật khẩu" Variant="Variant.Outlined"
+                              ReadOnly="!edit" Margin="Margin.Dense" Required="true"
+                              RequiredError="Mật khẩu không được để trống!" />
+            </MudItem>
+            <MudItem md="4" sm="4" xs="6">
+                <MudSelect T="int" ShrinkLabel Label="Quyền" Dense="true" Variant="Variant.Outlined"
+                           ReadOnly="!edit" Margin="Margin.Dense" @bind-Value="user.RoleId">
+                    @foreach (var role in roles)
+                    {
+                        <MudSelectItem Value="@role.RoleId">
+                            <MudText Class="mb-1">@role.RoleName</MudText>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem md="6" sm="6" xs="6">
+                <MudTextField T="string" @bind-Value="@user.Phone" ReadOnly="!edit" Label="SĐT" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Required="true"
+                              RequiredError="Số điện thoại không được để trống!" />
+            </MudItem>
+            <MudItem md="6" sm="6" xs="12">
+                <MudTextField T="string" @bind-Value="@user.Email" ReadOnly="!edit" Label="Email" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Required="true"
+                              RequiredError="Email không được để trống!" />
+            </MudItem>
+        </MudGrid>
+
+        <!-- Thêm khoảng cách giữa các grid -->
+        <MudGrid Style="margin-top: 15px;" Spacing="3">
+            <MudButton Disabled="@btnStatus" OnClick="Add">Thêm</MudButton>
+            <MudButton Disabled="@btnStatus" @onclick="@(() => Delete(user))">Xóa</MudButton>
+            <MudButton Disabled="@btnStatus" OnClick="Edit">Sửa</MudButton>
+            <MudButton Disabled="@(!btnStatus)" OnClick="Confirm">Lưu</MudButton>
+            <MudButton Disabled="@(!btnStatus)" OnClick="Cancel">Hủy</MudButton>
+        </MudGrid>
+
+        <!-- Thông báo -->
+        @if (!string.IsNullOrEmpty(successMessage) || !string.IsNullOrEmpty(errorMessage))
+        {
+            <MudContainer Class="mt-3">
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <MudAlert Severity="Severity.Success">@successMessage</MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Warning">@errorMessage</MudAlert>
+                }
+            </MudContainer>
+        }
+
+        <!-- Bảng -->
+        <MudTable Dense="true" Breakpoint="Breakpoint.None" Style="white-space:nowrap; margin-top: 20px;"
+                  Bordered="true" Striped="true" Items="@users" SortMode="SortMode.Multiple" Hover="true">
+            <HeaderContent>
+                <MudTh>STT</MudTh>
+                <MudTh>Tên đăng nhập</MudTh>
+                <MudTh>SĐT</MudTh>
+                <MudTh>Mật khẩu</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Ngày tạo</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="context">
+                <MudTd DataLabel="STT"></MudTd>
+                <MudTd DataLabel="Tên đăng nhập">
+                    <div @onclick="@(() => FetchUser(context.UserId))">@context.Username</div>
+                </MudTd>
+                <MudTd DataLabel="SĐT"> <div @onclick="@(() => FetchUser(context.UserId))">@context.Phone</div></MudTd>
+                <MudTd DataLabel="Mật khẩu"> <div @onclick="@(() => FetchUser(context.UserId))">@context.Password</div></MudTd>
+                <MudTd DataLabel="Email"> <div @onclick="@(() => FetchUser(context.UserId))">@context.Email</div></MudTd>
+                <MudTd DataLabel="Ngày tạo">@context.Created</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudContainer>
+
+    <style>
+        .table {
+            font-family: Arial;
+        }
+    </style>
+}
+
+
+
+@code {
+    #region Khởi tạo biến
+    private Role role = new();
+    bool edit = false;
+    bool btnStatus = false;
+    private bool processing = false;
+    bool create = false;
+    private List<Role> roles = new();
+    private User user = new();
+    private List<User> users = new();
+    private string? selectedNhomquyen;
+    private string errorMessage = "";
+    private string successMessage = "";
+    bool success;
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            users = await UserService.GetAllStaff();
+            roles = await UserService.GetAllRole();
+
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi tải dữ liệu: {ex.Message}";
+        }
+    }
+
+    private async Task FetchUser(int userId)
+    {
+        try
+        {
+            user = await UserService.GetUserById(userId);
+            if (user != null)
+            {
+                user.Password = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi tải chi tiết người dùng: {ex.Message}";
+        }
+    }
+
+    private void Add()
+    {
+        user = new();
+        edit = true;
+        create = true;
+        btnStatus = true;
+    }
+    private void Edit()
+    {
+        edit = true;
+        btnStatus = true;
+    }
+    private void Cancel()
+    {
+
+        btnStatus = false;
+    }
+    private async Task Delete(User user)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDiaLog> { { x => x.user, user } };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDiaLog>("Delete user", parameters);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            await UserService.DeleteUser(user);
+            users = await UserService.GetAllStaff();
+        }
+    }
+
+    private async Task Confirm()
+    {
+        try
+        {
+            if (create)
+            {
+                if (string.IsNullOrEmpty(user.Username))
+                {
+                    errorMessage = "Tên đăng nhập không được để trống!";
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(user.Password))
+                {
+                    errorMessage = "Mật khẩu không được để trống!";
+                    return;
+                }
+
+                user.Img = null;
+                user.Status = 1;
+                user.Created = DateTime.Now;
+
+                await UserService.CreateUser(user, user.Password);
+                successMessage = "Thêm mới thành công!";
+                users = await UserService.GetAllStaff();
+            }
+
+            else if (edit)
+            {
+                if (user == null)
+                {
+                    errorMessage = "Vui lòng chọn nhân viên cần sửa thông tin!";
+                    return;
+                }
+
+                user.Updated = DateTime.Now;
+
+                if (!string.IsNullOrEmpty(user.Password)) // Nếu có thay đổi mật khẩu
+                {
+                    await UserService.EditUser(user, user.Password);
+                }
+                else
+                {
+                    await UserService.EditUser(user, null);
+                }
+
+                successMessage = "Cập nhật thành công!";
+                users = await UserService.GetAllStaff();
+            }
+
+            create = false;
+            edit = false;
+            btnStatus = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi lưu thông tin: {ex.Message}";
+        }
+    }
+    private string userRoleId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+        }
+    }
+}

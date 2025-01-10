@@ -1,0 +1,27 @@
+﻿@page "/payment-cancel"
+@inject NavigationManager NavigationManager
+
+@code {
+    private string? codeParam;
+    private string? idParam;
+    private bool? cancelParam;
+    private string? statusParam;
+    private string? orderCodeParam;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+
+        // Lấy các tham số từ chuỗi truy vấn
+        var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        codeParam = queryParameters.ContainsKey("code") ? queryParameters["code"].ToString() : null;
+        idParam = queryParameters.ContainsKey("id") ? queryParameters["id"].ToString() : null;
+        cancelParam = queryParameters.ContainsKey("cancel") ? bool.TryParse(queryParameters["cancel"], out bool cancelValue) && cancelValue : null;
+        statusParam = queryParameters.ContainsKey("status") ? queryParameters["status"].ToString() : null;
+        orderCodeParam = queryParameters.ContainsKey("orderCode") ? queryParameters["orderCode"].ToString() : null;
+        NavigationManager.NavigateTo($"/payment/cancel");
+
+
+    }
+}

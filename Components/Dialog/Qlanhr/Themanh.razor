@@ -1,0 +1,104 @@
+﻿@using BanSach.Components.Model
+@using BanSach.Components.Services
+@using BanSach.Components.IService
+@using Microsoft.AspNetCore.Http
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+<MudDialog style="width:500px">
+    <TitleContent>
+        <MudText Typo="Typo.h5">
+            Thêm ảnh nổi bật
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="@Typo.h6">Tải ảnh lên:</MudText>
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudFab Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.Image"
+                        Label="Load picture" />
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+
+            @if (!string.IsNullOrEmpty(img.img))
+            {
+                <MudItem xs="12">
+                    <MudText Typo="@Typo.h6">Xem trước ảnh:</MudText>
+                    <img src="@img.img" alt="Preview" width="200" Height="100" Class="rounded-lg" />
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" OnClick="createImg">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    private string? imageDirectory;
+    [Parameter]
+    [CascadingParameter]
+    public MudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public Img img { get; set; } = new Img();
+    private void Cancel() {
+        // Nếu có ảnh đã tải lên, xóa ảnh đó
+        if (!string.IsNullOrEmpty(img.img))
+        {
+            string filePath = Path.Combine(Environment.WebRootPath, img.img.TrimStart('/'));
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath); // Xóa file
+            }
+        }
+
+        // Đặt lại đối tượng img và đóng dialog
+        img = new Img();
+        MudDialog!.Cancel();
+    }
+    private void createImg()
+    {
+
+        MudDialog!.Close(DialogResult.Ok(img));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageDirectory = Path.Combine(Environment.WebRootPath, "images");
+       
+    }
+    private IList<IBrowserFile> _files = new List<IBrowserFile>();
+
+    // Phương thức tải lên ảnh
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        // Kiểm tra nếu thư mục 'images' không tồn tại thì tạo mới
+        if (!Directory.Exists(imageDirectory))
+        {
+            Directory.CreateDirectory(imageDirectory);
+        }
+
+        // Tạo tên file duy nhất
+        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+        string filePath = Path.Combine(imageDirectory, fileName);
+
+        // Lưu file vào thư mục
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.OpenReadStream().CopyToAsync(stream);
+        }
+
+        // Cập nhật đường dẫn file vào database hoặc object
+        img.img = "/images/" + fileName;
+    }
+ 
+}

@@ -1,0 +1,45 @@
+﻿@page "/payment-webhook";
+@using BanSach.Components.Services.PaymentServices
+@inject NavigationManager NavigationManager
+@inject IPaymentOS payment
+@inject NavigationManager navigationManager
+
+
+
+@code {
+    private string? codeParam;
+    private string? idParam;
+    private bool? cancelParam;
+    private string? statusParam;
+    private string? orderCodeParam;
+
+    protected override async void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+
+        // Lấy các tham số từ chuỗi truy vấn
+        var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        codeParam = queryParameters.ContainsKey("code") ? queryParameters["code"].ToString() : null;
+        idParam = queryParameters.ContainsKey("id") ? queryParameters["id"].ToString() : null;
+        cancelParam = queryParameters.ContainsKey("cancel") ? bool.TryParse(queryParameters["cancel"], out bool cancelValue) && cancelValue : null;
+        statusParam = queryParameters.ContainsKey("status") ? queryParameters["status"].ToString() : null;
+        orderCodeParam = queryParameters.ContainsKey("orderCode") ? queryParameters["orderCode"].ToString() : null;
+
+        if (codeParam == "00" && statusParam == "PAID")
+        {
+            var checkBill = await payment.PaymentSucsses(orderCodeParam);
+            if(checkBill != null)
+            {
+                 navigationManager.NavigateTo($"/payment/thanh-cong/{checkBill.BillId}");
+
+            }
+        }
+        else
+        {
+             navigationManager.NavigateTo($"/payment/that-bai");
+
+        }
+    }
+}
+

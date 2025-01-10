@@ -1,0 +1,244 @@
+﻿@page "/register"
+@inject IAuthService AuthService
+@using BanSach.Components.Model
+<body>
+    <div class="form-container">
+        <div class="col col-1">
+            <div class="image-layer">
+                <img src="../images/img/white-outline.png" class="form-image-main" />
+                <img src="../images/img/dots.png" class="form-image dots" />
+                <img src="../images/img/coin.png" class="form-image coin" />
+                <img src="../images/img/spring.png" class="form-image spring" />
+                <img src="../images/img/rocket.png" class="form-image rocket" />
+                <img src="../images/img/cloud.png" class="form-image cloud" />
+                <img src="../images/img/stars.png" class="form-image stars" />
+            </div>
+        </div>
+        <div class="col col-2">
+            <div class="register-form">
+                <div class="form-title">
+                    <span>Đăng ký</span>
+                </div>
+                <EditForm Model="user" OnValidSubmit="HandleRegistration">
+                    <DataAnnotationsValidator />
+                    <div class="form-inputs">
+                        <div class="input-box">
+                            <label for="email">Email</label>
+                            <InputText id="email" @bind-Value="user.Email" class="input-field" type="email" />
+                            <ValidationMessage For="(() => user.Email)" />
+                        </div>
+                        <div class="input-box">
+                            <label for="password">Mật khẩu</label>
+                            <InputText id="password" @bind-Value="user.Password" class="input-field" type="password" />
+                            <ValidationMessage For="(() => user.Password)" />
+                        </div>
+                        <div class="input-box">
+                            <label for="confirmPassword">Nhập lại mật khẩu</label>
+                            <InputText id="confirmPassword" @bind-Value="user.ConfirmPassword" class="input-field" type="password" />
+                            <ValidationMessage For="(() => user.ConfirmPassword)" />
+                        </div>
+                        <button type="submit" class="input-submit">Đăng ký</button>
+                        <div class="@messageCssClass">
+                            <span>@message</span>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</body>
+
+<style>
+    body {
+        background: url("../images/img/1.jpg");
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 0 20px;
+    }
+
+    .form-container {
+        display: flex;
+        width: 1000px;
+        height: 600px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 30px;
+        backdrop-filter: blur(20px);
+    }
+
+    .col-1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        width: 55%;
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(30px);
+        border-radius: 0 30% 20% 0;
+        transition: border-radius 0.3s;
+    }
+
+    .image-layer {
+        position: relative;
+    }
+
+    .form-image-main {
+        width: 400px;
+        animation: scale-up 3s ease-in-out alternate infinite;
+    }
+
+    .form-image {
+        position: absolute;
+        left: 0;
+        width: 400px;
+    }
+
+    .coin {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    .spring {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    .dots {
+        animation: scale-up 3s ease-in-out alternate infinite;
+    }
+
+    .rocket {
+        animation: up-down 3s ease-in-out alternate infinite;
+    }
+
+    .cloud {
+        animation: left-right 3s ease-in-out alternate infinite;
+    }
+
+    .stars {
+        animation: scale-down 3s ease-in-out alternate infinite;
+    }
+
+    @@keyframes left-right {
+        to {
+            transform: translateX(10px);
+        }
+    }
+
+    @@keyframes up-down {
+        to {
+            transform: translateY(10px);
+        }
+    }
+
+    @@keyframes scale-down {
+        to {
+            transform: scale(0.95);
+        }
+    }
+
+    @@keyframes scale-up {
+        to {
+            transform: scale(1.05);
+        }
+    }
+
+    .col-2 {
+        position: relative;
+        width: 45%;
+        padding: 20px;
+    }
+
+    .register-form {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 20px;
+        width: 100%;
+    }
+
+    .form-title {
+        margin-bottom: 20px;
+        color: #fff;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .form-inputs {
+        width: 100%;
+    }
+
+    .input-box {
+        margin-bottom: 15px;
+    }
+
+    .input-field {
+        width: 100%;
+        height: 50px;
+        padding: 0 15px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 10px;
+        outline: none;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .input-submit {
+        width: 100%;
+        height: 50px;
+        color: #fff;
+        background: #21264D;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .input-submit:hover {
+            transform: translateY(-3px);
+        }
+
+    .text-success {
+        color: #4caf50;
+        margin-top: 10px;
+    }
+
+    .text-danger {
+        color: #f44336;
+        margin-top: 10px;
+    }
+</style>
+
+@code {
+    UserRegister user = new UserRegister();
+    string message = string.Empty;
+    string messageCssClass = string.Empty;
+
+    async Task HandleRegistration()
+    {
+        var newUser = new User
+            {
+                Email = user.Email,
+                Password = user.Password,
+                RoleId = 2
+            };
+
+        var result = await AuthService.Register(newUser, user.ConfirmPassword);
+        message = result.Message;
+        if (result.Success)
+        {
+            messageCssClass = "text-success";
+        }
+        else
+        {
+            messageCssClass = "text-danger";
+        }
+    }
+}

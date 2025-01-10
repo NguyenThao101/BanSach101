@@ -1,0 +1,26 @@
+﻿@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+<MudDialog>
+    <Tile>@Title</Tile>
+    <MudDialogContent>
+        <MudAlert Severity="@Severity">@Content</MudAlert>
+    </MudDialogContent>
+    <MudDialogActions>
+        <MudButton OnClick="CloseDialog" Color="Color.Primary">Đóng</MudButton>
+    </MudDialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialogInstance { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Content { get; set; } = string.Empty;
+    [Parameter] public Severity Severity { get; set; }
+    private void CloseDialog() => MudDialogInstance.Close();
+}

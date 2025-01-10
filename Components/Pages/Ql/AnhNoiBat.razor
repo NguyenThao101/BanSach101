@@ -1,0 +1,152 @@
+﻿@page "/noibat"
+@using BanSach.Components.Dialog.Qlanhr
+@using BanSach.Components.Model
+@using BanSach.Components.Services
+@using BanSach.Components.IService
+@using Microsoft.AspNetCore.Http
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject NavigationManager navigationManager
+@inject IItemManagement ItemManagement
+@inject HttpClient httpClient
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject CustomAuthStateProvider AuthStateProvider
+
+
+        @if (userRoleId == "2")
+        {
+            <h3>Bạn chưa được cấp quyền để xem trang này.</h3>
+        }
+        else if (userRoleId == "3")
+        {
+    <div style="display:flex; justify-content: space-between; padding: 30px 30px 0 30px;">
+        <h2 style="font-family:Arial;">Quản lý ảnh nổi bật</h2>
+        <MudSpacer></MudSpacer>
+        <MudButton OnClick="@((e) => CreateAsync(img))" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Thêm</MudButton>
+    </div>
+    <MudGrid Style="margin: 20px;">
+        <MudItem xs="11" sm="11" md="11">
+            @if (imgs != null)
+            {
+                <MudGrid Mode="GridMode.Flex" Class="anh" Spacing="3">
+                    @foreach (var img in imgs)
+                    {
+                        <MudItem xs="5" sm="5" md="5" lg="5" Style="margin:20px">
+                            <div style="position: relative; width: 100%; overflow: hidden; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
+                                <img src="@img.img" alt="Product Image" style="width: 100%; height: 200px; object-fit: cover; display: block;" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                               OnClick="@((e) => DeleteAsync(img))"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Style="position: absolute; top: 8px; right: 8px; border-radius: 50%; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);" />
+                            </div>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+            }
+        </MudItem>
+    </MudGrid>
+        }
+        else if (userRoleId == "1")
+        {
+    <div style="display:flex; justify-content: space-between; padding: 30px 30px 0 30px;">
+        <h2 style="font-family:Arial;">Quản lý ảnh nổi bật</h2>
+        <MudSpacer></MudSpacer>
+        <MudButton OnClick="@((e) => CreateAsync(img))" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Thêm</MudButton>
+    </div>
+    <MudGrid Style="margin: 20px;">
+        <MudItem xs="11" sm="11" md="11">
+            @if (imgs != null)
+            {
+                <MudGrid Mode="GridMode.Flex" Class="anh" Spacing="3">
+                    @foreach (var img in imgs)
+                    {
+                        <MudItem xs="5" sm="5" md="5" lg="5" Style="margin:20px">
+                            <div style="position: relative; width: 100%; overflow: hidden; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
+                                <img src="@img.img" alt="Product Image" style="width: 100%; height: 200px; object-fit: cover; display: block;" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                               OnClick="@((e) => DeleteAsync(img))"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               Style="position: absolute; top: 8px; right: 8px; border-radius: 50%; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);" />
+                            </div>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+            }
+        </MudItem>
+    </MudGrid>
+        }
+ 
+
+
+@code {
+    private Product product = new Product();
+    private Img img = new Img();
+    private string? imageDirectory;
+    private List<Img> imgs = new List<Img>();
+    protected override async Task OnInitializedAsync()
+    {
+        imageDirectory = Path.Combine(Environment.WebRootPath, "images");
+        try
+        {
+            imgs = await ItemManagement.GetAllImgsDescending();
+
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Lỗi trong OnInitializedAsync: " + ex.Message);
+        }
+    }
+
+    private async Task CreateAsync(Img img)
+    {
+        var parameters = new DialogParameters<Themanh> { { x => x.img, img } };
+        var dialog = await DialogService.ShowAsync<Themanh>("Thêm ảnh nổi bật", parameters);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            await ItemManagement.CreateImg(img);
+        }
+    }
+    private async Task DeleteAsync(Img img)
+    {
+        var parameters = new DialogParameters<DeleteConfirmDiaLog> { { x => x.img, img } };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDiaLog>("Xóa ảnh", parameters);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            await ItemManagement.DeleteImg(img);
+            imgs = await ItemManagement.GetAllImgsDescending();
+        }
+
+    }
+    private string userRoleId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+        }
+    }
+}

@@ -1,0 +1,44 @@
+﻿@using BanSach.Components.IService
+@using BanSach.Components.Services
+@using BanSach.Components.Model
+@inject IDialogService DialogService
+@inject IItemManagement ItemManagement
+@rendermode InteractiveServer
+<MudDialog style="width:500px">
+    <TitleContent>
+        <MudText Typo="Typo.h6" style="text-align:center">
+            -- Create User! --
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField Label="Tên đăng nhập "
+                      @bind-Value="User.Username"/> 
+        <MudTextField Label="Mật khẩu" Class="mt-3"
+                      @bind-Value="User.Password"/>
+        <MudTextField Label="SĐT" Class="mt-3"
+                      @bind-Value="User.Phone" />
+        <MudTextField Label="Email" Class="mt-3"
+                      @bind-Value="User.Email" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" OnClick="CreateUser">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [Parameter]
+    [CascadingParameter]
+    public MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public User User { get; set; } = new User();
+
+    private void Cancel() => MudDialog!.Cancel();
+
+    private void CreateUser()
+    {
+
+        MudDialog!.Close(DialogResult.Ok(User));
+    }
+
+}
