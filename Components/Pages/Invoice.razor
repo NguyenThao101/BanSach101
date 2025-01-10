@@ -205,7 +205,6 @@
             // Xóa sản phẩm cụ thể trong hóa đơn
             await BillService.DeleteProductFromBill(bill.BillId, product.Product.ProductId);
 
-            // Cập nhật lại tổng tiền của hóa đơn sau khi xóa sản phẩm
             bill.TotalPrice -= product.Price * product.Quantity;
 
             await BillService.EditBill(bill); 
@@ -227,7 +226,6 @@
         try
         {
 
-            // Kiểm tra nếu productBillId không hợp lệ
             if (productBillId <= 0)
             {
                 await DialogService.ShowMessageBox("Lỗi", "ID hóa đơn không hợp lệ.");

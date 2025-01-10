@@ -211,7 +211,7 @@ namespace BanSach.Components.Services
                                join pb in db.Product_bills on b.BillId equals pb.BillId
                                where b.Created_at >= startOfMonth
                                      && b.Created_at <= endOfMonth
-                                     && b.Status == OrderStatus.Completed.ToString()
+                                     && b.Status == "Hoàn thành"
                                      && b.ApproveBill == true
                                select new
                                {
@@ -227,13 +227,147 @@ namespace BanSach.Components.Services
 
             return (doanhThu, doanhSo, soDon);
         }
-
-
         public async Task<PagedResult<BillVanDonDTO>> GetBillDetailsAsync(int page, int pageSize)
         {
             var query = from bill in db.Bill
                         join user in db.Users on bill.UserID equals user.UserId
 
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+         .OrderByDescending(b => b.Created_at)
+         .Skip(page * pageSize)
+         .Take(pageSize)
+         .ToListAsync();
+            return new PagedResult<BillVanDonDTO>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
+        }
+        public async Task<PagedResult<BillVanDonDTO>> GetBillCho(int page, int pageSize)
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Status == "Chờ"
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+         .OrderByDescending(b => b.Created_at)
+         .Skip(page * pageSize)
+         .Take(pageSize)
+         .ToListAsync();
+            return new PagedResult<BillVanDonDTO>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
+        }
+        public async Task<PagedResult<BillVanDonDTO>> GetBillLayhang(int page, int pageSize)
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Status == "Đang chờ lấy hàng"
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+         .OrderByDescending(b => b.Created_at)
+         .Skip(page * pageSize)
+         .Take(pageSize)
+         .ToListAsync();
+            return new PagedResult<BillVanDonDTO>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
+        }
+        public async Task<PagedResult<BillVanDonDTO>> GetBillDanggiao(int page, int pageSize)
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Status == "Đang giao"
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+         .OrderByDescending(b => b.Created_at)
+         .Skip(page * pageSize)
+         .Take(pageSize)
+         .ToListAsync();
+            return new PagedResult<BillVanDonDTO>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
+        }
+        public async Task<PagedResult<BillVanDonDTO>> GetBillHoanthanh(int page, int pageSize)
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Status == "Hoàn thành"
                         select new BillVanDonDTO
                         {
                             BillId = bill.BillId,
@@ -274,10 +408,10 @@ namespace BanSach.Components.Services
             {
                 return false;
             }
-            checkBill.Status = OrderStatus.Processing.ToString();
+            checkBill.Status ="Đang xử lí";
             checkBill.Note = "Đã duyệt đơn";
             checkBill.ApproveBill = true;
-            checkBill.Status = OrderStatus.AwaitingPickup.ToString();
+            checkBill.Status = "Đang chờ lấy hàng";
             checkBill.Updated_at = DateTime.Now;
             await db.SaveChangesAsync();
 
@@ -290,7 +424,7 @@ namespace BanSach.Components.Services
             {
                 return false;
             }
-            checkBill.Status = OrderStatus.Cancelled.ToString(); // Chuyển trạng thái hóa đơn thành "Đã hủy"
+            checkBill.Status = "Đã Hủy"; // Chuyển trạng thái hóa đơn thành "Đã hủy"
             await db.SaveChangesAsync();
             return true;
         }
@@ -302,7 +436,7 @@ namespace BanSach.Components.Services
                 return false;
             }
             checkBill.Updated_at = DateTime.Now;
-            checkBill.Status = OrderStatus.Completed.ToString(); // Chuyển trạng thái hóa đơn thành "hoàn thành"
+            checkBill.Status = "Hoàn thành"; // Chuyển trạng thái hóa đơn thành "hoàn thành"
             await db.SaveChangesAsync();
             return true;
         }
@@ -377,7 +511,8 @@ namespace BanSach.Components.Services
             }
 
             bill.DeliveryId = deleveryCheck.DeliveryId;
-            bill.WarehouseID = WarehouseID;
+            bill.Status = "Đang giao";
+          //  bill.WarehouseID = WarehouseID;
             // Cập nhật số lượng sản phẩm trong kho
             // Lọc chỉ các sản phẩm thuộc hóa đơn cụ thể
             var productBills = await db.Product_bills
@@ -389,18 +524,18 @@ namespace BanSach.Components.Services
                 var warehouseProduct = await db.Products
                     .FirstOrDefaultAsync(wp => wp.ProductId == detail.ProductId);
 
-                if (warehouseProduct == null)
-                {
-                    return (new Delivery(), 404, $"Không tìm thấy sản phẩm {detail.ProductId}");
-                }
+                //if (warehouseProduct == null)
+                //{
+                //    return (new Delivery(), 404, $"Không tìm thấy sản phẩm {detail.ProductId}");
+                //}
 
-                if (warehouseProduct.Quantity < detail.Quantity)
-                {
-                    return (new Delivery(), 400, $"Số lượng sản phẩm {detail.ProductId} không đủ trong kho");
-                }
+                //if (warehouseProduct.Quantity < detail.Quantity)
+                //{
+                //    return (new Delivery(), 400, $"Số lượng sản phẩm {detail.ProductId} không đủ trong kho");
+                //}
 
-                // Trừ số lượng trong kho
-                warehouseProduct.Quantity -= detail.Quantity;
+                //// Trừ số lượng trong kho
+                //warehouseProduct.Quantity -= detail.Quantity;
             }
 
             // Lưu thay đổi vào cơ sở dữ liệu
@@ -418,7 +553,7 @@ namespace BanSach.Components.Services
                 return (model, 400, "Không tìm thấy hóa đơn");
 
             }
-            if (checkBill.Status != "Pending")
+            if (checkBill.Status != "Chờ")
             {
                 return (model, 400, "Hóa đơn đang được đợi duyệt");
 
@@ -437,7 +572,7 @@ namespace BanSach.Components.Services
             {
                 checkBill.PayStatus = type;
                 checkBill.Note = "Thanh toán khi nhận hàng";
-                checkBill.Status = OrderStatus.Processing.ToString();
+                checkBill.Status ="Đang xử lí";
                 checkBill.Updated_at = DateTime.Now;
                 checkBill.AddressId = newAddress.AddressId;
                 await db.SaveChangesAsync();

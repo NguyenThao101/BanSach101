@@ -2,6 +2,7 @@
 using BanSach.Components.IService;
 using BanSach.Components.Model;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 
 namespace BanSach.Components.Services
 {
@@ -76,7 +77,7 @@ namespace BanSach.Components.Services
             newBill.Note = "Đang chờ duyệt";
             newBill.Created_at = DateTime.Now;
             newBill.Updated_at = DateTime.Now;
-            newBill.Status = OrderStatus.Pending.ToString();
+            newBill.Status = "Chờ";
             newBill.ApproveBill = false;
             await db.AddAsync(newBill);
             await db.SaveChangesAsync();
@@ -103,8 +104,9 @@ namespace BanSach.Components.Services
 
         public async Task<Product_bill> GetProductBillById(int productBillId)
         {
-            return await db.Product_bills
+            var p = await db.Product_bills
                     .FirstOrDefaultAsync(pb => pb.ProductBillId == productBillId);
+            return p;
         }
 
         public async Task<PaymentResult> ProcessPayment(int productBillId, string paymentMethod)
@@ -157,7 +159,7 @@ namespace BanSach.Components.Services
                     AddressId = addressId,
                     TotalPrice = (int)totalPrice,
                     Note = note,
-                    Status = "Đang chờ",
+                    Status = "Chờ",
                     Created_at = DateTime.Now
                 };
 
@@ -219,10 +221,14 @@ namespace BanSach.Components.Services
         public async Task<(Bill, int code, string message)> CreateBillMain(List<Product_cart> cart)
         {
             var userId = cart.First().UserId;
-
+           
             decimal totalPrice = cart.Sum(cartItem => cartItem.Price * cartItem.Quantity);
+            var today = DateTime.Now;
+            var discountsToday = await db.Discount
+                .Where(d => d.StartDate <= today && d.EndDate >= today)
+                .ToListAsync();
 
-            var checkBillCompled = await db.Bill.FirstOrDefaultAsync(x => x.UserID == userId && x.ApproveBill == false && x.Status == "Pending");
+            var checkBillCompled = await db.Bill.FirstOrDefaultAsync(x => x.UserID == userId && x.ApproveBill == false && x.Status == "Chờ");
             if (checkBillCompled == null)
             {
                 Bill newBill = new Bill
@@ -235,7 +241,7 @@ namespace BanSach.Components.Services
                     Note = "Đơn đang thanh toán",
                     Created_at = DateTime.UtcNow,
                     Updated_at = DateTime.UtcNow,
-                    Status = OrderStatus.Pending.ToString(),
+                    Status = "Chờ",
                     ApproveBill = false
                 };
                 await db.Bill.AddAsync(newBill);
@@ -280,6 +286,23 @@ namespace BanSach.Components.Services
                             Updated = DateTime.Now
                         };
                         await db.AddAsync(newProductBill);
+                        var product = await db.Products.FirstOrDefaultAsync(p => p.ProductId == newProductBill.ProductId);
+                        if (product != null)
+                        {
+                            product.Quantity = product.Quantity - newProductBill.Quantity;
+                            db.Products.Update(product);
+                        }
+
+
+                        // Kiểm tra nếu có khuyến mãi cho sản phẩm
+                        foreach (var d in discountsToday)
+                        {
+                            if (d.ProductId == newProductBill.ProductId)
+                            {
+                                newProductBill.Price = d.SellPrice;
+                                break;
+                            }
+                        }
 
                     }
                 }
@@ -294,7 +317,7 @@ namespace BanSach.Components.Services
         public async Task<(Bill, int code, string message)> CreateBillNow(Product product, int userID, int quantity)
         {
             // Kiểm tra xem người dùng có hóa đơn chờ xác nhận chưa
-            var checkBillCompled = await db.Bill.FirstOrDefaultAsync(x => x.UserID == userID && x.ApproveBill == false && x.Status == "Pending");
+            var checkBillCompled = await db.Bill.FirstOrDefaultAsync(x => x.UserID == userID && x.ApproveBill == false && x.Status == "Chờ");
 
             if (checkBillCompled == null)
             {
@@ -306,7 +329,7 @@ namespace BanSach.Components.Services
                     PayStatus = "Đang chờ",
                     Note = "Đơn đang thanh toán",
                     Created_at = DateTime.UtcNow,
-                    Status = OrderStatus.Pending.ToString(),
+                    Status = "Chờ",
                     ApproveBill = false
                 };
 
@@ -327,7 +350,14 @@ namespace BanSach.Components.Services
                     Created = DateTime.Now,
                     Updated = DateTime.Now
                 };
-
+                if(product.ProductId== productBills.ProductId)
+                {
+                    product.Quantity =product.Quantity - productBills.Quantity;
+                   
+                        db.Products.Update(product);
+                    
+                    
+                }
                 // Kiểm tra nếu có khuyến mãi cho sản phẩm
                 foreach (var d in discountsToday)
                 {
@@ -368,6 +398,8 @@ namespace BanSach.Components.Services
                 // Nếu sản phẩm đã có trong hóa đơn, chỉ cần tăng số lượng và cập nhật giá
                 if (existingProductBill != null)
                 {
+                    if(existingProductBill.ProductId== product.ProductId) { }
+                    product.Quantity -= quantity;
                     existingProductBill.Quantity += quantity;
                     existingProductBill.Price = price;
                     existingProductBill.Updated = DateTime.Now;
@@ -389,8 +421,7 @@ namespace BanSach.Components.Services
 
                 // Cập nhật lại tổng tiền của hóa đơn
                 checkBillCompled.TotalPrice += productTotalPrice;
-                checkBillCompled.Updated_at = DateTime.Now;
-
+              
                 await db.SaveChangesAsync();
                 return (checkBillCompled, 200, "Đã lên hóa đơn thành công");
             }

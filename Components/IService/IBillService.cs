@@ -19,7 +19,10 @@ namespace BanSach.Components.IService
         Task<bool> CompleteProductBillAsync(BillVanDonDTO bill);
         Task<List<DoanhThuViewModel>> GetAllBillDoanhThu(DateTime? fromDate, DateTime? toDate);
         Task<PagedResult<BillVanDonDTO>> GetBillDetailsAsync(int page, int pageSize);
-
+        Task<PagedResult<BillVanDonDTO>> GetBillHoanthanh(int page, int pageSize);
+        Task<PagedResult<BillVanDonDTO>> GetBillCho(int page, int pageSize);
+        Task<PagedResult<BillVanDonDTO>> GetBillDanggiao(int page, int pageSize);
+        Task<PagedResult<BillVanDonDTO>> GetBillLayhang(int page, int pageSize);
         Task<List<TopProductViewModel>> GetTopProducts(DateTime? fromDate, DateTime? toDate);
         Task<bool> ApproveProductBillAsync(BillVanDonDTO bill);
         Task<bool> DeleteProductBillAsync(BillVanDonDTO bill);

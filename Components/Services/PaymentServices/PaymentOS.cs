@@ -73,7 +73,7 @@ namespace BanSach.Components.Services.PaymentServices
             }
 
             order.Note = "Đã thanh toán thành công";
-            order.Status = OrderStatus.Completed.ToString();
+            order.Status = "Đợi lấy hàng";
             order.Updated_at = DateTime.Now;
 
             try
@@ -85,11 +85,7 @@ namespace BanSach.Components.Services.PaymentServices
             {
                 throw new InvalidOperationException("Lỗi.", ex);
             }
-
             return order;
         }
-
-
-
     }
 }

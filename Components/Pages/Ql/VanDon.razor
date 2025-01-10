@@ -10,26 +10,26 @@
 
 <style>
     .clickable-cell {
-        cursor: pointer;
-        transition: background-color 0.3s ease;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
     }
 
-        .clickable-cell:hover {
-            color: #f0f0f0;
-        }
+    .clickable-cell:hover {
+    color: #f0f0f0;
+    }
 
     .mud-large {
-        width: 100%;
-        max-width: 80em !important;
+    width: 100%;
+    max-width: 80em !important;
     }
 
     .img-product {
-        max-width: 100px;
-        width: fit-content;
+    max-width: 100px;
+    width: fit-content;
     }
 
     .img-show {
-        max-width: 100px;
+    max-width: 100px;
     }
 </style>
 <MudItem md="11">
@@ -113,7 +113,7 @@
                     @foreach (var delivery in DeliveryList)
                     {
                         <MudSelectItem T="int" Value="@delivery.DeliveryId"
-                                       Selected="@(delivery.DeliveryId == productList.FirstOrDefault()?.Bills.DeliveryId)">
+                        Selected="@(delivery.DeliveryId == productList.FirstOrDefault()?.Bills.DeliveryId)">
                             @delivery.DeliveryName
                         </MudSelectItem>
                     }
@@ -164,6 +164,7 @@
     private int selectedDeliveryId;
     private int selectedAddressId;
     private int selectedWarehouseId = 0;
+    private List<BillVanDonDTO> bills = new List<BillVanDonDTO>();
     private List<ProductBillDetailDto> productList = new List<ProductBillDetailDto>();
     private MudDialog? _productDetailsDialog;
     private List<Delivery>? DeliveryList;
@@ -222,6 +223,7 @@
                 };
         }
     }
+
     private async Task HandleApprove(BillVanDonDTO bill)
     {
         try
@@ -264,8 +266,7 @@
                 var deletedBill = pagedItems.FirstOrDefault(b => b.BillId == bill.BillId);
                 if (deletedBill != null)
                 {
-                    pagedItems.Remove(deletedBill);
-
+                    deletedBill.Status = "Đã hủy";
                 }
 
                 StateHasChanged();
@@ -286,6 +287,14 @@
     {
         try
         {
+            if(bill.Status=="Đã hủy")
+            {
+                await DialogService.ShowMessageBox("Lỗi đơn", "Đơn hàng này đã hủy.");
+            }
+            if (bill.Status == "Chờ"|| bill.Status=="Đang chờ lấy hàng")
+            {
+                await DialogService.ShowMessageBox("Lỗi đơn", "Đơn hàng chưa được giao.");
+            }
 
             bool duyet = await BillService.CompleteProductBillAsync(bill);
             if (duyet)
@@ -295,7 +304,7 @@
                 if (updatedBill != null)
                 {
                     updatedBill.ApproveBill = true;
-                    updatedBill.Status = "Completed";
+                    updatedBill.Status = "Hoàn thành";
                 }
 
                 StateHasChanged();
@@ -324,6 +333,7 @@
     private async Task ConfirmDeliveryChange(int? billID)
 
     {
+        
         var (delivery, code, message) = await BillService.SetDeliveryBill(billID, selectedDeliveryId, selectedWarehouseId);
         string dialogTitle = code == 200 ? "Thành Công" : "Lỗi";
         string dialogMessage = code == 200

@@ -345,7 +345,7 @@ namespace BanSach.Migrations
                     b.Property<int>("FeaturePId")
                         .HasColumnType("int");
 
-                    b.Property<string>("OrderStatus")
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
