@@ -21,7 +21,8 @@
 @inject ILocalStorageService LocalStorage
 @using BanSach.Components.Data
 @inject AppDbContext _context
-
+@using BanSach.Components.Services.ReviewService
+@inject ReviewService ReviewService
 <MudGrid Class="pt-2" @key="@productId">
     <MudItem xs="12" sm="12">
         @if (product != null)
@@ -48,6 +49,8 @@
                                     <div style="margin-top:10px">Lượt mua:@productViewModel.TotalQuantity</div>
                                 </MudItem>
                             </MudGrid>
+
+
                         </MudGrid>
                         @{
                             var discount = discounts.FirstOrDefault(d => d.ProductId == productId);  // Lấy thông tin giảm giá cho sản phẩm nếu có
@@ -105,8 +108,56 @@
                     <div>@product.Description</div>
                 </MudItem>
             </MudGrid>
+
+
         }
 
+    </MudItem>
+</MudGrid>
+<MudGrid>
+    <MudItem xs="12">
+        <h3 style="font-weight: bold; text-align: center; margin-top: 20px;">Đánh giá sản phẩm</h3>
+        @if (reviews.Any(r => r.ProductId == productId))
+        {
+            <div class="review-container" style="margin-top: 20px;">
+                <MudPaper Class="average-rating" Style="padding: 20px; margin-top: 20px; border-radius: 10px;">
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <div style="font-size: 1.2em; font-weight: bold; text-align: center;">Đánh giá trung bình</div>
+                        </MudItem>
+                        <MudItem xs="12" style="margin-top: 10px; text-align: center;">
+                            <MudRating Disabled="true" SelectedValue="@( (int)averageRating )" Color="Color.Transparent" IconSize="Large" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+                @foreach (var review in reviews.Where(r => r.ProductId == productId))
+                {
+                    <MudPaper Class="review-item" Style="padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+                        <MudGrid>
+                            <MudItem xs="12" style="display: flex; align-items: center;">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Primary" />
+                                <div style="margin-left: 10px;">
+                                    <div style="font-weight: bold;">@review.User.Username</div>
+                                    <div style="font-size: 0.9em; color: gray;">@review.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" style="margin-top: 10px;">
+                                <MudRating Disabled="true" SelectedValue="@review.Rating" Color="Color.Transparent" />
+                            </MudItem>
+                            <MudItem xs="12" style="margin-top: 10px;">
+                                <p style="margin: 0;">@review.ReviewText</p>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+            </div>
+        }
+        else
+        {
+            <div style="text-align: center; margin-top: 20px; font-size: 1.1em; font-style: italic; color: gray;">
+                Chưa có đánh giá nào cho sản phẩm này.
+            </div>
+        }
     </MudItem>
 </MudGrid>
 
@@ -125,15 +176,17 @@
     public List<Product> products = new List<Product>();
     [Parameter]
     public int productId { get; set; }
+    // public int productBillId{ get; set; }
     private List<string> uploadedImages = new List<string>();
     private List<IBrowserFile> selectedFiles = new List<IBrowserFile>();
     private bool isInitialized = false;
     private TopProductViewModel productViewModel = new TopProductViewModel();
+    private double averageRating;
 
     protected override async Task OnParametersSetAsync()
     {
 
-       // productViewModel = await BillService.GetTotalQuantityP(productId);
+        productViewModel = await BillService.GetTotalQuantityP(productId);
         if (productId > 0 && isInitialized)
         {
             product = await GetProduct();
@@ -157,7 +210,7 @@
                     userId = 0;
                 }
                 Categories = await ItemManagement.GetAllCategogy();
-                StateHasChanged();
+
             }
             catch (Exception ex)
             {
@@ -219,6 +272,16 @@
             }
 
             isInitialized = true;
+        }
+
+        reviews = await ReviewService.GetReviewsForProductAsync(productId);
+        if (reviews.Any())
+        {
+            averageRating = reviews.Average(r => r.Rating);
+        }
+        else
+        {
+            averageRating = 0;
         }
     }
     private async Task<Product_cart> CreatProductCart() => await CartService.CreatePCart(product_cart);
@@ -296,4 +359,7 @@
         await DialogService.ShowMessageBox("Lỗi", "Không thể xác định người dùng.");
         return;
     }
+    private List<Review> reviews = new List<Review>();
+
+
 }

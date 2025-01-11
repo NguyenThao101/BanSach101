@@ -9,6 +9,8 @@ namespace BanSach.Components.Data
         {
 
         }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<LogAnhNoiBat> Logs { get; set; }
         public DbSet<Discount> Discount { get; set; }
         public DbSet<QNA> QNA { get; set; }
         public DbSet<Address> Address { get; set; }
@@ -27,6 +29,10 @@ namespace BanSach.Components.Data
         public DbSet<Warehouse> Warehouse { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Review>()
+             .HasKey(l => l.ReviewId);
+            modelBuilder.Entity<LogAnhNoiBat>()
+            .HasKey(l => l.LogId);
             modelBuilder.Entity<Address>()
                 .HasKey(u => u.AddressId);
             modelBuilder.Entity<Address>()
@@ -39,8 +45,13 @@ namespace BanSach.Components.Data
                 .Property(o => o.BillId)
                 .ValueGeneratedOnAdd();
 
+            modelBuilder.Entity<Bill>()
+                .Property(b => b.TotalPrice)
+                .HasColumnType("decimal(18, 0)");
+
+
             modelBuilder.Entity<Discount>()
-                .HasKey(o => o.DiscountId);
+                    .HasKey(o => o.DiscountId);
             modelBuilder.Entity<Discount>()
                 .Property(o => o.DiscountId)
                 .ValueGeneratedOnAdd();
@@ -82,8 +93,8 @@ namespace BanSach.Components.Data
                 .ValueGeneratedOnAdd();
 
             modelBuilder.Entity<Product_bill>()
-    .Property(p => p.Price)
-    .HasColumnType("decimal(18,2)");
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)");
             modelBuilder.Entity<Product_cart>()
            .HasKey(m => new { m.UserId, m.ProductId });  // Sử dụng khóa chính kết hợp UserId và ProductId
             modelBuilder.Entity<Product_cart>()
@@ -91,7 +102,9 @@ namespace BanSach.Components.Data
                 .WithMany()                  // Một sản phẩm có thể có nhiều giỏ hàng
                 .HasForeignKey(pc => pc.ProductId)  // Khóa ngoại tham chiếu đến bảng Products
                 .OnDelete(DeleteBehavior.Cascade);  // Xóa giỏ hàng nếu sản phẩm bị xóa
-
+            modelBuilder.Entity<Product_cart>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)");
             modelBuilder.Entity<Product>()
                 .HasKey(m => m.ProductId);
             modelBuilder.Entity<Product>()

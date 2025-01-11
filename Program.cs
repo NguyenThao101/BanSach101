@@ -5,6 +5,7 @@ using BanSach.Components.Services;
 using BanSach.Components.Services.AuthService;
 using BanSach.Components.Services.PaymentServices;
 using BanSach.Components.Services.QNAService;
+using BanSach.Components.Services.ReviewService;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -35,6 +36,9 @@ builder.Services.AddScoped<IBillService, BillService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDiscountServicecs, DiscountService>();
 builder.Services.AddScoped<AdminAccountService>();
+builder.Services.AddScoped<ReviewService>();
+
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

@@ -1,0 +1,72 @@
+﻿@using MudBlazor
+@using BanSach.Components.Services.ReviewService
+@inject ReviewService ReviewService
+@inject CustomAuthStateProvider AuthenticationStateProvider
+@using System.Security.Claims
+
+<DialogContent>
+    <MudTextField Label="Nhập đánh giá của bạn" @bind-Value="ReviewText" Lines="4" />
+    <MudRating @bind-SelectedValue="Rating" MaxValue="5" />
+
+
+</DialogContent>
+
+<DialogActions>
+    <MudButton OnClick="SubmitReview">Gửi đánh giá</MudButton>
+    <MudButton OnClick="Cancel">Hủy</MudButton>
+</DialogActions>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    
+    [Parameter] public int Rating { get; set; }
+    [Parameter] public string ReviewText { get; set; }
+    private int userId;
+    [Parameter] public int ProductId { get; set; }
+    [Parameter] public int ProductBillId { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(userIdClaim, out var parsedUserId))
+        {
+            userId = parsedUserId;
+        }
+        else
+        {
+            userId = 0;
+        }
+
+        
+    }
+    private async Task SubmitReview()
+    {
+        Console.WriteLine($"Rating trước khi lưu: {Rating}"); // Kiểm tra giá trị Rating
+        Console.WriteLine($"ReviewText trước khi lưu: {ReviewText}");
+       
+            var newReview = new Review
+                {
+                    Rating = Rating,
+                    ReviewText = ReviewText,
+                    CreatedAt = DateTime.Now,
+                    UserId = userId,
+                    ProductId=ProductId,
+                    
+                    ProductBillId=ProductBillId
+                };
+
+            await ReviewService.SaveReview(newReview);
+            MudDialog.Close(DialogResult.Ok(true));
+        
+    }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+ }

@@ -9,6 +9,8 @@
 @using System.Security.Claims
 @using BanSach.Components.Model.ViewModel
 @using MudBlazor
+@using BanSach.Components.Services.ReviewService
+@inject ReviewService ReviewService
 
 <style>
     .clickable-cell {
@@ -38,22 +40,22 @@
 <!-- Hiển thị danh sách hóa đơn -->
 @foreach (var groupedProducts in products.Where(p => p.Bills.UserID == userId).GroupBy(p => p.Bills.BillId))
 {
-    // Lấy Bill từ phần tử đầu tiên trong nhóm
     var bill = groupedProducts.First().Bills;
 
     <MudPaper Elevation="3" Style="margin:20px; padding:20px">
 
-        <MudGrid Style="margin-bottom: 20px" >
+        <MudGrid Style="margin-bottom: 20px">
             <MudItem md="6" xs="6">
                 <MudItem><strong>Mã hóa đơn: @groupedProducts.Key</strong></MudItem>
                 <MudItem>Ngày mua: @bill.Created_at</MudItem>
             </MudItem>
             <MudSpacer />
-            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right"><strong>@bill.Status</strong></MudItem>
+            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right">
+                <strong>@bill.Status</strong>
+            </MudItem>
         </MudGrid>
 
         <table>
-           
             <tbody>
                 @foreach (var context in groupedProducts)
                 {
@@ -64,13 +66,21 @@
                         <td>@context.Product.ProductName</td>
                         <td>@context.Quantity</td>
                         <td>@context.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td>
+                        <td>
+                            @if (@bill.Status == "Hoàn thành")
+                            {
+                                <MudButton Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small" @onclick="() => OpenReviewDialog(bill.Status,context.ProductBillId,context.Product.ProductId)">
+                                    Đánh giá
+                                </MudButton>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+
         <MudGrid>
             <MudItem md="12" xs="12" Style="text-align:right">Ngày giao: @bill.Updated_at</MudItem>
-        
             <MudItem md="6" xs="6"><strong>Tổng tiền:</strong></MudItem>
             <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right"><strong>@bill.TotalPrice</strong></MudItem>
         </MudGrid>
@@ -80,6 +90,8 @@
 @code {
     private int userId;
     private List<ProductBillDetailDto> products = new List<ProductBillDetailDto>();
+    private int rating = 0;
+    private string reviewText = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,7 +109,34 @@
             userId = 0;
         }
 
-        // Lấy danh sách sản phẩm theo BillId
         products = await BillService.GetProductsByBill();
+    }
+
+    private async Task OpenReviewDialog(string status, int productBillId, int productId)
+    {
+        if (status == "Hoàn thành")
+        {
+            // Kiểm tra xem người dùng đã đánh giá sản phẩm này chưa
+            bool hasReviewed = await ReviewService.HasReviewedOrderAsync(userId, productBillId);
+            if (hasReviewed)
+            {
+                await DialogService.ShowMessageBox("Thông báo", "Bạn đã đánh giá sản phẩm này rồi.");
+                return;
+            }
+
+            // Hiển thị dialog nếu chưa đánh giá
+            var parameters = new DialogParameters
+                {
+                    ["Rating"] = rating,
+                    ["ReviewText"] = reviewText,
+                    ["ProductBillId"] = productBillId,
+                    ["ProductId"] = productId
+                };
+
+            var dialog = DialogService.Show<RatingDialog>("Đánh giá sản phẩm", parameters);
+            var result = await dialog.Result;
+
+
+        }
     }
 }

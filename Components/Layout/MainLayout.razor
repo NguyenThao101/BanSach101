@@ -81,9 +81,14 @@
                     @if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
                         <MudButton Variant="Variant.Filled"
-                                   OnClick="NavigateToSearchPage">
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="NavigateToSearchPage"
+                                   Style="padding: 8px 20px; font-size: 16px; border-radius: 8px; font-weight: bold;"
+                                   Elevation="2">
                             Tìm kiếm
                         </MudButton>
+
                     }
 
                 </div>
