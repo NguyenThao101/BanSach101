@@ -83,7 +83,7 @@ else if (userRoleId == "1")
               Style="white-space:nowrap" Bordered="true" RowClass="cursor-pointer" Striped="true" Hover="true" HorizontalScrollbar="true">
 
         <HeaderContent>
-            <MudTh>#</MudTh>
+            <MudTh>ID</MudTh>
             <MudTh>Tên</MudTh>
             <MudTh>Giảm giá</MudTh>
             <MudTh>Giá bán</MudTh>
@@ -94,11 +94,8 @@ else if (userRoleId == "1")
 
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="#">
-                <MudTd DataLabel="#">
-                    <input name="selected" type="checkbox" />
-                </MudTd>
-
+            <MudTd DataLabel="ID">
+                <div>@context.DiscountId</div>
             </MudTd>
             <MudTd DataLabel="Tên">
                 <div>

@@ -23,6 +23,58 @@ namespace BanSach.Components.Services
         {
             return await db.Product_bills.ToListAsync();
         }
+        public async Task<List<BillVanDonDTO>> GetBill()
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(b => b.Created_at)
+                .ToListAsync();
+            return items;
+        }
+        public async Task<List<BillVanDonDTO>> GetBillBySatus(string status )
+        {
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Status == status  // Lọc theo trạng thái
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(b => b.Created_at)
+                .ToListAsync();
+            return items;
+        }
+
         public async Task DeleteProductFromBill(int billId, int productId)
         {
             // Tìm sản phẩm trong hóa đơn bằng BillId và ProductId
@@ -226,40 +278,6 @@ namespace BanSach.Components.Services
             int soDon = bills.Select(b => b.BillId).Count(); // Đếm số lượng các hóa đơn duy nhất
 
             return (doanhThu, doanhSo, soDon);
-        }
-        public async Task<PagedResult<BillVanDonDTO>> GetBillDetailsAsync(int page, int pageSize)
-        {
-            var query = from bill in db.Bill
-                        join user in db.Users on bill.UserID equals user.UserId
-
-                        select new BillVanDonDTO
-                        {
-                            BillId = bill.BillId,
-                            UserID = bill.UserID,
-                            AddressId = bill.AddressId,
-                            DeliveryId = bill.DeliveryId,
-                            PayStatus = bill.PayStatus,
-                            TotalPrice = bill.TotalPrice,
-                            Note = bill.Note,
-                            Created_at = bill.Created_at,
-                            Updated_at = bill.Updated_at,
-                            Status = bill.Status,
-                            ApproveBill = bill.ApproveBill,
-                            UserName = user.Username,
-                        };
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-         .OrderByDescending(b => b.Created_at)
-         .Skip(page * pageSize)
-         .Take(pageSize)
-         .ToListAsync();
-            return new PagedResult<BillVanDonDTO>
-            {
-                Items = items,
-                TotalCount = totalCount
-            };
         }
         public async Task<PagedResult<BillVanDonDTO>> GetBillCho(int page, int pageSize)
         {

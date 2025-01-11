@@ -27,7 +27,6 @@
     <MudItem xs="12" sm="12">
         @if (product != null)
         {
-
             <MudGrid>
                 <MudItem xs="0" sm="1" md="1"></MudItem>
                 <MudItem xs="12" sm="5" md="5">
@@ -42,17 +41,15 @@
                                 </MudItem>
                             </MudGrid>
                             <MudGrid Style="padding-top:10px; display: flex; align-items: center;">
-                                @*  <MudItem Class="pt-1" md="4" sm="4" xs="4" style="margin-top: 0;">
-                                    <MudRating Disabled="true" SelectedValue="4" />
-                                </MudItem> *@
+                                 <MudItem Class="pt-1" md="4" sm="4" xs="4" style="margin-top: 0;">
+                                    <MudRating Disabled="true" SelectedValue="@( (int)averageRating )" Color="Color.Transparent" IconSize="Large" />
+                                </MudItem>
                                 <MudItem Class="pt-1" md="8" sm="8" xs="8">
-                                    <div style="margin-top:10px">Lượt mua:@productViewModel.TotalQuantity</div>
+                                    <div style="margin-top:10px">Lượt mua:@productViewModel.TotalQuantity</div>                                   
                                 </MudItem>
                             </MudGrid>
-
-
                         </MudGrid>
-                        @{
+                         @{
                             var discount = discounts.FirstOrDefault(d => d.ProductId == productId);  // Lấy thông tin giảm giá cho sản phẩm nếu có
                         }
 
@@ -74,7 +71,7 @@
                             <div>
                                 @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
                             </div>
-                        }
+                        } 
 
                         <MudItem Class="pt-1"><div>Chính sách trả hàng: Trả hàng trong 15 ngày</div></MudItem>
                         <MudItem>
@@ -108,28 +105,14 @@
                     <div>@product.Description</div>
                 </MudItem>
             </MudGrid>
-
-
         }
 
     </MudItem>
-</MudGrid>
-<MudGrid>
     <MudItem xs="12">
         <h3 style="font-weight: bold; text-align: center; margin-top: 20px;">Đánh giá sản phẩm</h3>
         @if (reviews.Any(r => r.ProductId == productId))
         {
             <div class="review-container" style="margin-top: 20px;">
-                <MudPaper Class="average-rating" Style="padding: 20px; margin-top: 20px; border-radius: 10px;">
-                    <MudGrid>
-                        <MudItem xs="12">
-                            <div style="font-size: 1.2em; font-weight: bold; text-align: center;">Đánh giá trung bình</div>
-                        </MudItem>
-                        <MudItem xs="12" style="margin-top: 10px; text-align: center;">
-                            <MudRating Disabled="true" SelectedValue="@( (int)averageRating )" Color="Color.Transparent" IconSize="Large" />
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
                 @foreach (var review in reviews.Where(r => r.ProductId == productId))
                 {
                     <MudPaper Class="review-item" Style="padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
@@ -302,22 +285,18 @@
 
         // Cập nhật thông tin giỏ hàng với số lượng từ người dùng
         product_cart.ProductId = product.ProductId;
-        product_cart.Quantity = quantity; // Cập nhật số lượng
+        product_cart.Quantity = quantity; 
         product_cart.Created = thoigian;
         product_cart.UserId = userId;
         product_cart.Price = product.SellPrice;
 
         // Tạo giỏ hàng mới
         await CreatProductCart();
-
-        // Hiển thị thông báo sau khi thêm sản phẩm vào giỏ
-        Snackbar.Add("Sản phẩm đã được thêm vào giỏ hàng.", Severity.Success);
+        await DialogService.ShowMessageBox("Thành công", "Sản phẩm đã được thêm vào giỏ hàng.");       
     }
-
 
     private async Task HandleBuyNow(Product product)
     {
-
         if (quantity <= 0)
         {
             await DialogService.ShowMessageBox("Lỗi", "Số lượng phải lớn hơn 0.");
@@ -360,6 +339,5 @@
         return;
     }
     private List<Review> reviews = new List<Review>();
-
 
 }

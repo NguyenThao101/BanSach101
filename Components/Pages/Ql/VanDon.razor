@@ -32,10 +32,25 @@
     max-width: 100px;
     }
 </style>
-<MudItem md="11">
-    <MudTable Items="pagedItems" ServerData="LoadServerData" Bordered="true" Dense="true" Hover="true">
+<MudGrid Style="margin:20px,0px">
+<MudItem md="12">
+    <MudTable Items="bills"  Bordered="true" Dense="true" Hover="true">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Danh sách đơn hàng</MudText>
+                <MudGrid>
+                    <MudItem md="8" >
+                        <MudText Typo="Typo.h6" Style="margin-top:15px;">Danh sách đơn hàng</MudText>
+                    </MudItem>
+                    <MudItem md ="4"  >
+                        <MudMenu Style="margin-top:15px;" Label="Trạng thái" AriaLabel="Open user menu">
+                            <MudMenuItem OnClick="BillAll">Tất cả</MudMenuItem>
+                            <MudMenuItem OnClick="BillComplete">Hoàn thành</MudMenuItem>
+                            <MudMenuItem OnClick="BillDelivering">Đang giao</MudMenuItem>
+                            <MudMenuItem OnClick="BillAwatting">Đang chờ lấy hàng</MudMenuItem>
+                            <MudMenuItem OnClick="BillCancel">Đã hủy</MudMenuItem>
+                        </MudMenu>
+                    </MudItem>
+                </MudGrid>
+
         </ToolBarContent>
 
         <HeaderContent>
@@ -78,6 +93,7 @@
         </PagerContent>
     </MudTable>
 </MudItem>
+</MudGrid>
 <MudDialog @ref="_productDetailsDialog" class="mud-large">
 
     <DialogContent>
@@ -175,14 +191,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDeliveryList();
+        DeliveryList = await BillService.GetAllDelivery();
+
+        await BillAll();
     }
 
-    private async Task LoadDeliveryList()
-    {
-        DeliveryList = await BillService.GetAllDelivery();
-        WarehouseList = await BillService.GetAllWarehouse();
-    }
     private async Task OpenProductDetails(int billId)
     {
         var options = new DialogOptions { CloseOnEscapeKey = true };
@@ -194,34 +207,28 @@
 
         await _productDetailsDialog.ShowAsync();
     }
-
+    private async Task BillComplete (){
+        bills = await BillService.GetBillBySatus("Hoàn thành");
+    }
+    private async Task BillAll()
+    {
+        bills = await BillService.GetBill();
+    }
+    private async Task BillCancel()
+    {
+        bills = await BillService.GetBillBySatus("Đã hủy");
+    }
+    private async Task BillDelivering()
+    {
+        bills = await BillService.GetBillBySatus("Đang giao");
+    }
+    private async Task BillAwatting()
+    {
+        bills = await BillService.GetBillBySatus("Đang chờ lấy hàng");
+    }
     private void CloseDialog()
     {
         _productDetailsDialog?.CloseAsync(DialogResult.Ok(true));
-    }
-
-    private async Task<TableData<BillVanDonDTO>> LoadServerData(TableState tableState, CancellationToken cancellationToken)
-    {
-        state = tableState;
-
-        try
-        {
-            var result = await BillService.GetBillDetailsAsync(tableState.Page, tableState.PageSize);
-            pagedItems = result.Items;
-            return new TableData<BillVanDonDTO>
-                {
-                    Items = result.Items,
-                    TotalItems = result.TotalCount
-                };
-        }
-        catch (Exception ex)
-        {
-            return new TableData<BillVanDonDTO>
-                {
-                    Items = new List<BillVanDonDTO>(),
-                    TotalItems = 0
-                };
-        }
     }
 
     private async Task HandleApprove(BillVanDonDTO bill)
@@ -267,6 +274,7 @@
                 if (deletedBill != null)
                 {
                     deletedBill.Status = "Đã hủy";
+                    bills = await BillService.GetBill();
                 }
 
                 StateHasChanged();

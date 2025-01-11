@@ -243,16 +243,15 @@
     
     protected override async Task OnInitializedAsync()
     {
-        // Khởi tạo danh sách nếu các dịch vụ trả về null
+
         DateTime toDateOnly = DateTime.Now.Date;
         DateTime fromDateOnly = toDateOnly.AddMonths(-1);
         products = await getAllSach();
         categories = await ItemManagement.GetAllCategogy();
         discounts = await DiscountService.GetAllDiscountsTodayAsync();
-        // Đảm bảo imgs được tải đầy đủ trước khi hiển thị
         imgs = await ItemManagement.GetLastFourImgsAsync();
-         topProducts = await BillService.GetTopProducts(fromDateOnly, toDateOnly);
-        // Khi imgs đã được tải xong, gọi StateHasChanged để cập nhật giao diện
+        topProducts = await BillService.GetTopProducts(fromDateOnly, toDateOnly);
+        
         StateHasChanged();
     }
 

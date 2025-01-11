@@ -33,7 +33,7 @@ else if (userRoleId == "3")
             <MudTh>Xóa</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="STT"></MudTd>
+            <MudTd DataLabel="STT"><span>@context.CategoryId</span></MudTd>
             <MudTd DataLabel="Tên danh mục">
                 <span>@context.CategoryName</span>
             </MudTd>
@@ -80,7 +80,7 @@ else if (userRoleId == "1")
             <MudTh>Xóa</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="STT"></MudTd>
+            <MudTd DataLabel="STT"><span>@context.CategoryId</span></MudTd>
             <MudTd DataLabel="Tên danh mục">
                 <span>@context.CategoryName</span>
             </MudTd>

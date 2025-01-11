@@ -6,6 +6,8 @@ namespace BanSach.Components.IService
     public interface IBillService
     {
         Task<Bill> GetBillById(int BillId);
+        Task<List<BillVanDonDTO>> GetBill();
+        Task<List<BillVanDonDTO>> GetBillBySatus(string status);
         Task<List<Product_bill>> GetAllProduct_bill();
         Task DeleteProductFromBill(int billId, int productId);
         Task DeleteAllProductsFromBill(int billId);
@@ -18,7 +20,6 @@ namespace BanSach.Components.IService
         Task<List<Delivery>> GetAllDelivery();
         Task<bool> CompleteProductBillAsync(BillVanDonDTO bill);
         Task<List<DoanhThuViewModel>> GetAllBillDoanhThu(DateTime? fromDate, DateTime? toDate);
-        Task<PagedResult<BillVanDonDTO>> GetBillDetailsAsync(int page, int pageSize);
         Task<PagedResult<BillVanDonDTO>> GetBillHoanthanh(int page, int pageSize);
         Task<PagedResult<BillVanDonDTO>> GetBillCho(int page, int pageSize);
         Task<PagedResult<BillVanDonDTO>> GetBillDanggiao(int page, int pageSize);
