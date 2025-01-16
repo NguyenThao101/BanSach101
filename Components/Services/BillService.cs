@@ -48,6 +48,39 @@ namespace BanSach.Components.Services
                 .ToListAsync();
             return items;
         }
+        public async Task<List<BillVanDonDTO>> GetBillByDay(DateTime? ToDate, DateTime? FromDate )
+        {
+            // Nếu không truyền vào, mặc định là lấy tất cả khoảng thời gian
+            ToDate ??= DateTime.MinValue;
+            FromDate ??= DateTime.MaxValue;
+
+            var query = from bill in db.Bill
+                        join user in db.Users on bill.UserID equals user.UserId
+                        where bill.Created_at >= ToDate && bill.Created_at <= FromDate
+                        select new BillVanDonDTO
+                        {
+                            BillId = bill.BillId,
+                            UserID = bill.UserID,
+                            AddressId = bill.AddressId,
+                            DeliveryId = bill.DeliveryId,
+                            PayStatus = bill.PayStatus,
+                            TotalPrice = bill.TotalPrice,
+                           
+                            Note = bill.Note,
+                            Created_at = bill.Created_at,
+                            Updated_at = bill.Updated_at,
+                            Status = bill.Status,
+                            ApproveBill = bill.ApproveBill,
+                            UserName = user.Username,
+                        };
+
+            var items = await query
+                .OrderByDescending(b => b.Created_at)
+                .ToListAsync();
+
+            return items;
+        }
+
         public async Task<List<BillVanDonDTO>> GetBillBySatus(string status )
         {
             var query = from bill in db.Bill

@@ -6,6 +6,7 @@ namespace BanSach.Components.IService
     public interface IBillService
     {
         Task<Bill> GetBillById(int BillId);
+        Task<List<BillVanDonDTO>> GetBillByDay(DateTime? ToDate, DateTime? FromDate);
         Task<List<BillVanDonDTO>> GetBill();
         Task<List<BillVanDonDTO>> GetBillBySatus(string status);
         Task<List<Product_bill>> GetAllProduct_bill();

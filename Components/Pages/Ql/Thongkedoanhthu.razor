@@ -39,11 +39,11 @@ else if (userRoleId == "3" || userRoleId == "1")
         <MudGrid Justify="Justify.FlexStart" Spacing="1">
             <MudItem xs="6" sm="3" lg="2">
                 <MudDatePicker Label="Từ ngày" Margin="Margin.Dense" Culture="@GetVietNamCulture()"
-                               @bind-Date="fromDate" Variant="Variant.Outlined" Color="Color.Success" MaxDate="@DateTime.Now" />
+                @bind-Date="fromDate" Variant="Variant.Outlined" Color="Color.Success" MaxDate="@DateTime.Now" />
             </MudItem>
             <MudItem xs="6" sm="3" lg="2">
                 <MudDatePicker Label="Đến ngày" Margin="Margin.Dense" Culture="@GetVietNamCulture()"
-                               @bind-Date="toDate" Variant="Variant.Outlined" Color="Color.Secondary" MaxDate="@DateTime.Now" />
+                @bind-Date="toDate" Variant="Variant.Outlined" Color="Color.Secondary" MaxDate="@DateTime.Now" />
             </MudItem>
 
         </MudGrid>
@@ -51,35 +51,33 @@ else if (userRoleId == "3" || userRoleId == "1")
             <!-- ActivatorContent để kích hoạt menu -->
             <ActivatorContent>
                 <MudTable Dense="true" Class="mt-3" Bordered Height="auto"
-                          ReadOnly="false" HeaderClass="pa-1" Items="dt.Select()"
-                          T="DataRow" MultiSelection="false" RowClass="pa-0 cursor-pointer" Hover="true" Breakpoint="Breakpoint.None"
-                          @bind-SelectedItem="@selectedItem" HorizontalScrollbar="true">
+                ReadOnly="false" HeaderClass="pa-1" Items="bill"
+                MultiSelection="false" RowClass="pa-0 cursor-pointer" Hover="true" Breakpoint="Breakpoint.None"
+                >
 
                     <HeaderContent>
                         <MudTh>Đối tượng</MudTh>
                         <MudTh>BillID</MudTh>
-                        <MudTh>Số lượng</MudTh>
+
                         <MudTh>Tổng tiền</MudTh>
                         <MudTh>Trạng thái</MudTh>
                         <MudTh>Ngày</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Đối tượng">
-                            @context["UserName"].ToString()
+                            @context.UserName
                         </MudTd>
                         <MudTd DataLabel="BillID">
-                            @context["BillId"]
+                            @context.BillId
                         </MudTd>
-                        <MudTd DataLabel="Số lượng">
-                            @context["TotalPrice"]
-                        </MudTd>
+
                         <MudTd Style="text-align:right;" DataLabel="Tổng tiền">
-                            @(string.IsNullOrEmpty(context["TotalPrice"].ToString()) ? "0" : Convert.ToDecimal(context["TotalPrice"]).ToString("#,##0")) vnđ
+                            @(string.IsNullOrEmpty(context.TotalPrice.ToString()) ? "0" : Convert.ToDecimal(context.TotalPrice).ToString("#,##0")) vnđ
                         </MudTd>
-                        <MudTd DataLabel="Trạng thái thanh toán">@context["PayStatus"].ToString()</MudTd>
-                        <MudTd DataLabel="Trạng thái đơn hàng">@context["Status"].ToString()</MudTd>
+                        <MudTd DataLabel="Trạng thái thanh toán">@context.PayStatus</MudTd>
+                        <MudTd DataLabel="Trạng thái đơn hàng">@context.Status</MudTd>
                         <MudTd DataLabel="Ngày đặt">
-                            @(DateTime.Parse(context["BillCreatedAt"].ToString()).ToString("dd/MM/yyyy"))
+                            @(DateTime.Parse(context.Created_at.ToString()).ToString("dd/MM/yyyy"))
                         </MudTd>
                     </RowTemplate>
                     <PagerContent>
@@ -87,8 +85,6 @@ else if (userRoleId == "3" || userRoleId == "1")
                     </PagerContent>
                 </MudTable>
             </ActivatorContent>
-
-
         </MudMenu>
 
     </div>
@@ -116,6 +112,7 @@ else if (userRoleId == "3" || userRoleId == "1")
     private List<Bill> bills = new();
     private List<TopProductViewModel> topProducts = new();
     private List<DoanhThuViewModel> doanhThus = new();
+    private List<BillVanDonDTO> bill = new();
     private User user = new();
     private List<User> users = new();
     private DateTime? _fromDate;
@@ -152,14 +149,10 @@ else if (userRoleId == "3" || userRoleId == "1")
         }
     }
     private bool _loading = false;
-    int selectedRowNumber = -1;
-    DataRow? selectedItem;
-    private DataTable dt = new DataTable();
-    private IEnumerable<DataRow> filteredData => dt.AsEnumerable().Where(row =>
-       {
-           var date = DateTime.Parse(row["BillCreatedAt"].ToString());
-           return date >= fromDate && date <= toDate;
-       });
+
+    private async Task GetBill(){
+        bill = await BillService.GetBillByDay(fromDate, toDate);
+    }
     public CultureInfo GetVietNamCulture()
     {
         var culture = new CultureInfo("vi-VN");
@@ -172,7 +165,6 @@ else if (userRoleId == "3" || userRoleId == "1")
         formatInfo.ShortDatePattern = "dd/MM/yyyy";
         formatInfo.LongDatePattern = "dddd, dd/MMMM/yyyy";
         formatInfo.FirstDayOfWeek = DayOfWeek.Sunday;
-        // DB.Set_Connect(_config?.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Không tồn tại chuỗi kết nối 'Default Connection'."));
         return culture;
     }
     protected override async Task OnInitializedAsync()
@@ -180,8 +172,9 @@ else if (userRoleId == "3" || userRoleId == "1")
         users = await UserService.GetAllUser();
         var currentDate = DateTime.Now;
         var result = await BillService.GetDoanhThuThangHienTai(currentDate);
-        Console.WriteLine($"result.doanhThu:{result.doanhThu}");
+
         duDoanDoanhThu = DuDoanDoanhThuThangToi(result.doanhThu, 0.05m);
+       
         await LoadBills();
     }
     private string? userRoleId;
@@ -196,16 +189,10 @@ else if (userRoleId == "3" || userRoleId == "1")
             // Trích xuất RoleId từ Claims
             userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
 
-            // Debug thông tin RoleId
-            if (!string.IsNullOrEmpty(userRoleId))
-            {
-                Console.WriteLine($"RoleId: {userRoleId}");
-            }
-
         }
     }
     private async Task OnDateChanged(DateTime? date)
-    {
+    {      
         await LoadBills();
     }
 
@@ -220,9 +207,9 @@ else if (userRoleId == "3" || userRoleId == "1")
             doanhThu = doanhThus.Sum(x => x.TotalPrice);
             doanhSo = topProducts.Sum(b => b.TotalQuantity);
             soDon = doanhThus.Count();
-
-            dt = ConvertToDataTable(doanhThus);
-            StateHasChanged(); // Cập nhật giao diện
+          
+            await GetBill();
+            StateHasChanged(); 
 
         }
     }
@@ -234,35 +221,5 @@ else if (userRoleId == "3" || userRoleId == "1")
 
         return duDoan;
     }
-    private DataTable ConvertToDataTable(IEnumerable<DoanhThuViewModel> data)
-    {
-        var table = new DataTable();
-
-        // Tạo các cột phù hợp với cấu trúc dữ liệu
-        table.Columns.Add("BillId", typeof(int));
-        table.Columns.Add("TotalQuantity", typeof(int));
-        table.Columns.Add("BillCreatedAt", typeof(DateTime));
-        table.Columns.Add("UserName", typeof(string));
-        table.Columns.Add("TotalPrice", typeof(decimal));
-        table.Columns.Add("PayStatus", typeof(string));
-        table.Columns.Add("Status", typeof(string));
-
-        // Duyệt qua danh sách và thêm vào DataTable
-        foreach (var item in data)
-        {
-            dynamic bill = item;
-            table.Rows.Add(
-
-                bill.BillId,
-                bill.Quantity,
-                bill.BillCreatedAt,
-                bill.UserName,
-                bill.TotalPrice,
-                bill.PayStatus,
-                bill.Status
-            );
-        }
-
-        return table;
-    }
+   
 }
