@@ -23,127 +23,219 @@
 @inject AppDbContext _context
 @using BanSach.Components.Services.ReviewService
 @inject ReviewService ReviewService
-<MudGrid Class="pt-2" @key="@productId">
-    <MudItem xs="12" sm="12">
-        @if (product != null)
-        {
-            <MudGrid>
-                <MudItem xs="0" sm="1" md="1"></MudItem>
-                <MudItem xs="12" sm="5" md="5">
-                    <MudImage ObjectFit="ObjectFit.Cover" Width="300" Height="300" Src="@product.Img" Class="rounded-lg" />
-                </MudItem>
-                <MudItem md="6" sm="6" xs="12">
-                    <div style="padding: 30px">
-                        <MudGrid style="display: flex; flex-direction: column;">
-                            <MudGrid>
-                                <MudItem Class="pt-1">
-                                    <div style="font-weight:bold; font-size: 1.5em; padding-top: 10px">@product.ProductName</div>
+@inject NavigationManager NavigationManager
+@inject IHttpClientFactory ClientFactory
+@using System.Globalization
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
+    <MudGrid Class="pt-2" @key="@productId">
+        <MudItem xs="12" sm="12">
+            @if (product != null)
+            {
+                <MudGrid Style="align-items: center; margin-bottom: 20px;">
+                    <!-- Hình ảnh sản phẩm -->
+                    <MudItem xs="12" sm="5" md="5" Style="display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                        <MudImage ObjectFit="ObjectFit.Cover" Width="300" Height="300" Src="@product.Img" Class="rounded-lg" />
+                    </MudItem>
+
+                    <!-- Thông tin sản phẩm -->
+                    <MudItem md="6" sm="6" xs="12">
+                        <div style="padding: 30px">
+                            <MudGrid style="display: flex; flex-direction: column;">
+                                <!-- Tên sản phẩm -->
+                                <MudGrid>
+                                    <MudItem Class="pt-1">
+                                        <div style="font-weight:bold; font-size: 1.5em; padding-top: 10px">
+                                            📚 @product.ProductName
+                                        </div>
+                                    </MudItem>
+                                </MudGrid>
+
+                                <!-- Xếp hạng và lượt mua -->
+                                <MudGrid Style="padding-top:10px; display: flex; align-items: center;">
+                                    <MudItem md="4" sm="4" xs="4">
+                                        <MudRating Disabled="true" SelectedValue="@( (int)averageRating )" Color="Color.Transparent" IconSize="Large" />
+                                    </MudItem>
+                                    <MudItem md="8" sm="8" xs="8">
+                                        <div style="margin-top:10px">🛒 Lượt mua: @productViewModel.TotalQuantity</div>
+                                    </MudItem>
+                                </MudGrid>
+
+                                <!-- Giá và giảm giá -->
+                                @{
+                                    var discount = discounts.FirstOrDefault(d => d.ProductId == productId);
+                                }
+
+                                @if (discount != null)
+                                {
+                                    <div style="text-decoration:line-through; font-size: 13px;">
+                                        💰 @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                    </div>
+                                    <div style="font-style:italic; color: #e74c3c">Giảm giá: @discount.Rate%</div>
+                                    <div style="color: #e74c3c; font-weight:bold">
+                                        🔥 @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div>💰 @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ</div>
+                                }
+
+                                <!-- Chính sách trả hàng -->
+                                <MudItem Class="pt-2">
+                                    <div style="color: #e74c3c; font-weight:bold; font-style:italic;">
+                                        🛡️ Chính sách trả hàng: Trả hàng trong 15 ngày
+                                    </div>
+                                </MudItem>
+
+                                <!-- Số lượng và nút bấm -->
+                                <MudItem>
+                                    <div style="display: flex; align-items: center;">
+                                        📦 Số lượng:
+                                        <MudNumericField T="int" @bind-Value="@quantity" Min="0" Style="margin-left: 10px; width: 50px;" />
+                                    </div>
+                                </MudItem>
+                                <MudItem>
+                                    <MudButton Class="pt-1" Style="padding:10px" Variant="Variant.Filled" OnClick="@(() => HandleBuyNow(product))">
+                                        🛒 Mua hàng
+                                    </MudButton>
+                                    <MudButton Class="pt-1" Style="padding:10px; margin-left: 10px;" Variant="Variant.Filled" OnClick="AddCart">
+                                        ➕ Thêm vào giỏ hàng
+                                    </MudButton>
                                 </MudItem>
                             </MudGrid>
-                            <MudGrid Style="padding-top:10px; display: flex; align-items: center;">
-                                 <MudItem Class="pt-1" md="4" sm="4" xs="4" style="margin-top: 0;">
-                                    <MudRating Disabled="true" SelectedValue="@( (int)averageRating )" Color="Color.Transparent" IconSize="Large" />
-                                </MudItem>
-                                <MudItem Class="pt-1" md="8" sm="8" xs="8">
-                                    <div style="margin-top:10px">Lượt mua:@productViewModel.TotalQuantity</div>                                   
-                                </MudItem>
-                            </MudGrid>
-                        </MudGrid>
-                         @{
-                            var discount = discounts.FirstOrDefault(d => d.ProductId == productId);  // Lấy thông tin giảm giá cho sản phẩm nếu có
-                        }
+                        </div>
+                    </MudItem>
+                </MudGrid>
 
-                        @if (discount != null)
-                        {
-                            <!-- Hiển thị giá gốc (gạch ngang) -->
-                            <div style="text-decoration:line-through; font-size: 13px;">
-                                @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
-                            </div>
-                            <div style="font-style:italic; color: #e74c3c">Giảm giá: @discount.Rate%</div>
-                            <!-- Hiển thị giá sau giảm giá (màu đỏ) -->
-                            <div style="color: #e74c3c">
-                                <strong> @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ</strong>
-                            </div>
-                        }
-                        else
-                        {
-                            <!-- Nếu không có giảm giá, chỉ hiển thị giá gốc -->
-                            <div>
-                                @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
-                            </div>
-                        } 
+                <!-- Phần Chi tiết sản phẩm -->
+                <MudGrid Style="align-items: center; margin-bottom: 20px;">
 
-                        <MudItem Class="pt-1"><div>Chính sách trả hàng: Trả hàng trong 15 ngày</div></MudItem>
-                        <MudItem>
-                            <div style="display: flex; align-items: center;">
-                                Số lượng:<MudNumericField T="int" @bind-Value="@quantity" Min="0" Style="margin-left: 10px; width: 50px;" />
-                                @* <button @onclick="DecreaseQuantity" >-</button>
-                            <button @onclick="IncreaseQuantity" >+</button> *@
-                            </div>
-                        </MudItem>
-                        <MudItem>
-                            <MudButton Class="pt-1" style="padding:10px" ButtonType="ButtonType.Submit" Variant="Variant.Filled" OnClick="@(() => HandleBuyNow(product))">Mua hàng</MudButton>
+                    <MudItem md="12" sm="12" xs="12" Style="display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-weight:bold"><h2>📋 CHI TIẾT SẢN PHẨM</h2></div>
+                        <div><strong>📂 Danh mục: </strong>@categoryName</div>
+                        <div><strong>✒️ Tác giả: </strong>@product.Author</div>
+                        <div><strong>🏢 Nhà xuất bản: </strong>@product.Publisher</div>
+                        <div><strong>📄 Số trang: </strong>@product.PageNumber</div>
+                        <div><strong>📦 Kho: </strong>@product.Quantity</div>
+                        <div><strong>📅 Năm sản xuất: </strong>@product.Year</div>
+                    </MudItem>
+                </MudGrid>
 
-                            <MudButton Class="pt-1" style="padding:10px" ButtonType="ButtonType.Submit" Variant="Variant.Filled" OnClick="AddCart">Thêm vào giỏ hàng</MudButton>
-                        </MudItem>
+                <!-- Phần Mô tả sản phẩm sử dụng accordion -->
+                <MudGrid>
+                    <MudItem md="12" sm="12" xs="12">
+                        <div style="font-weight:bold"><h2>📝 MÔ TẢ SẢN PHẨM</h2></div>
+                        <div>@product.Description</div>
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudItem>
+        <MudGrid>
 
-                    </div>
-                </MudItem>
-            </MudGrid>
-            <MudGrid>
-                <MudItem md="1"></MudItem>
-                <MudItem md="10" sm="10" xs="12">
-                    <div style="font-weight:bold"><h2>CHI TIẾT SẢN PHẨM</h2> </div>
-                    <div><strong>Danh mục:      </strong>@categoryName</div>
-                    <div><strong>Tác giả:       </strong>@product.Author</div>
-                    <div><strong>Nhà xuất bản:  </strong>@product.Publisher</div>
-                    <div><strong>Số trang:      </strong>@product.PageNumber</div>
-                    <div><strong>Kho:           </strong>@product.Quantity</div>
-                    <div><strong>Năm sản xuất:  </strong>@product.Year </div>
-                    <br />
-                    <div style="font-weight: bold"><h2>MÔ TẢ SẢN PHẨM: </h2></div>
-                    <div>@product.Description</div>
-                </MudItem>
-            </MudGrid>
-        }
-
-    </MudItem>
-    <MudItem xs="12">
-        <h3 style="font-weight: bold; text-align: center; margin-top: 20px;">Đánh giá sản phẩm</h3>
-        @if (reviews.Any(r => r.ProductId == productId))
-        {
-            <div class="review-container" style="margin-top: 20px;">
-                @foreach (var review in reviews.Where(r => r.ProductId == productId))
+            <MudItem md="12" sm="12" xs="12">
+                <h2 style="font-weight: bold; text-align: center; margin-top: 20px;">Đánh giá sản phẩm</h2>
+                @if (reviews.Any(r => r.ProductId == productId))
                 {
-                    <MudPaper Class="review-item" Style="padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-                        <MudGrid>
-                            <MudItem xs="12" style="display: flex; align-items: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Primary" />
-                                <div style="margin-left: 10px;">
-                                    <div style="font-weight: bold;">@review.User.Username</div>
-                                    <div style="font-size: 0.9em; color: gray;">@review.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
-                                </div>
-                            </MudItem>
-                            <MudItem xs="12" style="margin-top: 10px;">
-                                <MudRating Disabled="true" SelectedValue="@review.Rating" Color="Color.Transparent" />
-                            </MudItem>
-                            <MudItem xs="12" style="margin-top: 10px;">
-                                <p style="margin: 0;">@review.ReviewText</p>
-                            </MudItem>
-                        </MudGrid>
-                    </MudPaper>
-                }
-            </div>
-        }
-        else
-        {
-            <div style="text-align: center; margin-top: 20px; font-size: 1.1em; font-style: italic; color: gray;">
-                Chưa có đánh giá nào cho sản phẩm này.
-            </div>
-        }
-    </MudItem>
-</MudGrid>
 
+                    @foreach (var review in reviews.Where(r => r.ProductId == productId))
+                    {
+                       
+                            <MudGrid>
+                                <MudItem xs="12" style="display: flex; align-items: center;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Primary" />
+                                    <div style="margin-left: 10px;">
+                                        <div style="font-weight: bold;">@review.User.Username</div>
+                                        <div style="font-size: 0.9em; color: gray;">@review.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="12" style="margin-top: 10px;">
+                                    <MudRating Disabled="true" SelectedValue="@review.Rating" Color="Color.Transparent" />
+                                </MudItem>
+                                <MudItem xs="12" style="margin-top: 10px;">
+                                    <p style="margin: 0;">@review.ReviewText</p>
+                                </MudItem>
+                            </MudGrid>
+                        
+                    }
+
+                }
+                else
+                {
+
+                }
+            </MudItem>
+        </MudGrid>
+    </MudGrid>
+
+    <MudCard>
+        <MudCardContent>
+            @if (products != null && products.Any())
+            {
+                <h2 style="margin-top: 20px; align-content:center">Gợi ý sản phẩm </h2>
+                <MudGrid Mode="GridMode.Flex" Class="anh" Style="display:flex;">
+                    @foreach (var item in products)
+                    {
+                        var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+                        var discount = discounts.FirstOrDefault(d => d.ProductId == item.ProductId);
+
+                        if (product != null)
+                        {
+                            <MudItem sm="4" md="2" xs="6" Style="margin: 15px;">
+                                <Button Class="button" @onclick="() => NavigateToDetail(item.ProductId)" Style="width: 100%; padding: 0; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="position: relative; width: 100%;">
+                                        @if (discount != null)
+                                        {
+                                            <div Style="position: absolute; top: 10px; left: 10px; color: #e74c3c; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); padding: 2px 5px; border-radius: 5px;">
+                                                -@discount.Rate%
+                                            </div>
+                                        }
+                                        <img ObjectFit="ObjectFit.Cover" Src="@product.Img" Height="200" Width="100%" Class="rounded-lg" />
+                                    </div>
+                                    <div style="width: 100%; text-align: center; margin-top: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                                        @product.ProductName
+                                    </div>
+                                    <div style="width: 100%; text-align: center; margin-top: 5px;">
+                                        @if (discount != null)
+                                        {
+                                            <!-- Nếu có khuyến mãi -->
+                                            <div style="text-decoration: line-through; font-size: 13px; color: gray;">
+                                                @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                            </div>
+                                            <div style="color: #e74c3c; font-weight: bold;">
+                                                @string.Format(new CultureInfo("vi-VN"), "{0:N0}", discount.SellPrice) vnđ
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <!-- Nếu không có khuyến mãi, hiển thị giá bình thường -->
+                                            <div>
+                                                @string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ
+                                            </div>
+                                        }
+                                    </div>
+                                </Button>
+                            </MudItem>
+                        }
+                    }
+                </MudGrid>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+<style>
+    .button {
+        margin: 10px 0 0 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: Arial;
+        font-weight: bold;
+    }
+
+        .button:hover {
+            transform: scale(1.05);
+        }
+</style>
 @code {
     private int userId;
     public int quantity = 1;
@@ -165,6 +257,8 @@
     private bool isInitialized = false;
     private TopProductViewModel productViewModel = new TopProductViewModel();
     private double averageRating;
+
+
 
     protected override async Task OnParametersSetAsync()
     {
@@ -200,6 +294,7 @@
                 System.Diagnostics.Debug.WriteLine("Lỗi trong OnInitializedAsync: " + ex.Message);
             }
 
+            // await LoadProductDetailAsync();
         }
         discounts = await DiscountService.GetAllItem();
     }
@@ -258,6 +353,8 @@
         }
 
         reviews = await ReviewService.GetReviewsForProductAsync(productId);
+        products = await GetRelatedProducts(productId);
+
         if (reviews.Any())
         {
             averageRating = reviews.Average(r => r.Rating);
@@ -266,6 +363,7 @@
         {
             averageRating = 0;
         }
+
     }
     private async Task<Product_cart> CreatProductCart() => await CartService.CreatePCart(product_cart);
     private async Task AddCart()
@@ -285,15 +383,17 @@
 
         // Cập nhật thông tin giỏ hàng với số lượng từ người dùng
         product_cart.ProductId = product.ProductId;
-        product_cart.Quantity = quantity; 
+        product_cart.Quantity = quantity;
         product_cart.Created = thoigian;
         product_cart.UserId = userId;
         product_cart.Price = product.SellPrice;
 
         // Tạo giỏ hàng mới
         await CreatProductCart();
-        await DialogService.ShowMessageBox("Thành công", "Sản phẩm đã được thêm vào giỏ hàng.");       
+        await DialogService.ShowMessageBox("Thành công", "Sản phẩm đã được thêm vào giỏ hàng.");
     }
+
+
 
     private async Task HandleBuyNow(Product product)
     {
@@ -337,6 +437,39 @@
 
         await DialogService.ShowMessageBox("Lỗi", "Không thể xác định người dùng.");
         return;
+    }
+
+    private async Task<List<Product>> GetRelatedProducts(int productId)
+    {
+        var httpClient = ClientFactory.CreateClient("API");
+        var relatedResult = await httpClient.GetFromJsonAsync<List<Product>>(
+    $"api/search/search-product?searchQuery={productId}") ?? new List<Product>();
+
+        // Loại bỏ sản phẩm có productId khỏi danh sách
+        relatedResult = relatedResult.Where(product => product.ProductId != productId).ToList();
+        // Truyền productId vào query string để lấy sản phẩm liên quan
+        // var filteredResult = await httpClient.GetFromJsonAsync<List<Product>>(
+        //     $"api/search/search-product?searchQuery={productId}") ?? new List<Product>();
+        // var productResult = filteredResult.FirstOrDefault(p => p.ProductId == productId);
+
+        // if (productResult == null)
+        // {
+        //     return new List<Product>(); // Nếu không tìm thấy sản phẩm, trả về danh sách trống
+        // }
+
+        // // Lọc các sản phẩm có Author hoặc Publisher giống với sản phẩm đã chọn
+        // var relatedResult = filteredResult
+        //     .Where(p => p.ProductId != productId &&
+        //                (p.Author == product.Author || p.Publisher == product.Publisher))
+        //     .ToList();
+
+        return relatedResult;
+    }
+
+
+    private void NavigateToDetail(int productId)
+    {
+        NavigationManager.NavigateTo($"/Detail/{productId}");
     }
     private List<Review> reviews = new List<Review>();
 

@@ -6,35 +6,84 @@
 
 @inject HttpClient Http
 @inject IHttpClientFactory ClientFactory
+
+@using Microsoft.CognitiveServices.Speech;
+@using Microsoft.CognitiveServices.Speech.Audio;
+@using Microsoft.CognitiveServices.Speech.Translation;
+
+
 <style>
 
     .container-search {
-        display: flex;
-        flex: 1 1 auto;
-        position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    position: relative;
     }
 
     .search-results {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background-color: white;
-        border: 1px solid #ddd;
-        z-index: 999;
-        max-height: 200px;
-        overflow-y: auto;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    z-index: 999;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .mud-list-item {
-        padding: 8px;
-        cursor: pointer;
+    padding: 8px;
+    cursor: pointer;
     }
 
-        .mud-list-item:hover {
-            background-color: #f4f4f4;
-        }
+    .mud-list-item:hover {
+    background-color: #f4f4f4;
+    }
+
+    .outlined-text-field .mud-input {
+    border-radius: 10px; /* Bo góc viền */
+    border: 2px solid #ccc; /* Màu viền */
+    padding: 0 16px; /* Cách lề bên trong */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Hiệu ứng mượt */
+    background-color: #ffffff; /* Màu nền */
+    }
+
+    .outlined-text-field .mud-input:hover {
+    border-color: #9e9e9e; /* Màu viền khi hover */
+    }
+
+    .outlined-text-field .mud-input:focus-within {
+    border-color: #6200ea; /* Màu viền khi focus */
+    box-shadow: 0 0 8px rgba(98, 0, 234, 0.5); /* Hiệu ứng shadow */
+    }
+
+    .outlined-text-field .mud-input-underline {
+    display: none; /* Ẩn thanh underline bên dưới */
+    }
+
+    #speech-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    z-index: 1000;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    }
+
+    #speech-popup[style*="block"] {
+    opacity: 1;
+    }
+
+
 
 </style>
 <CascadingAuthenticationState>
@@ -47,7 +96,8 @@
         <MudAppBar Elevation="1">
             <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
             <MudText Typo="Typo.h5" Class="ml-3">
-                <a href="/" style="text-decoration: none; color: inherit;">Nhà Sách Số 1</a>
+                <a href="/" 
+                >🏠 Nhà Sách</a>
             </MudText>
             <MudSpacer />
             <!-- Bắt đầu phần AppBar từ Home.razor -->
@@ -55,13 +105,28 @@
             Style=" margin: 0 10px;" /> *@
             @if (IsHomePage)
             {
-                <div class="container-search">
+
+
+                <div id="speech-popup" class="popup" style="display: @(IsListening ? "block" : "none");">
+                    <p>Đang nhận diện giọng nói...</p>
+                </div>
+
+                <div class="container-search" style="display: flex; align-items: center;">
                     <MudTextField T="string"
-                                  Icon="@Icons.Material.Filled.Search"
-                                  Placeholder="Tìm kiếm..."
-                                  Text="@searchQuery"
-                                  TextChanged="this.SetValueAsync"
-                                  Style="margin: 0 10px;" Immediate="true" />
+                    Icon="@Icons.Material.Filled.Search"
+                    Placeholder="Tìm kiếm..."
+                    Text="@searchQuery"
+                    TextChanged="this.SetValueAsync"
+                    Style="margin: 0 5px; height: 35px; font-size: 14px; color: #000000;"
+                    Immediate="true"
+                    Class="outlined-text-field"
+                    Variant="Variant.Outlined"
+                    Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.Clear"  
+                    AdornmentColor="Color.Secondary"
+                    Dense="true"
+                    OnFocus="OnFocus" 
+                    OnAdornmentClick="ClearText" />
 
                     @if (!string.IsNullOrWhiteSpace(searchQuery) && FilteredProducts.Any())
                     {
@@ -81,16 +146,20 @@
                     @if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Search"
-                                   OnClick="NavigateToSearchPage"
-                                   Style="padding: 8px 20px; font-size: 16px; border-radius: 8px; font-weight: bold;"
-                                   Elevation="2">
+                        Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.Search"
+                        OnClick="NavigateToSearchPage"
+                        Style="padding: 4px 10px; font-size: 12px; border-radius: 8px; font-weight: bold;"
+                        Elevation="2">
                             Tìm kiếm
                         </MudButton>
 
                     }
 
+                    <MudIconButton Icon="@Icons.Material.Filled.Mic"
+                    Color="Color.Primary"
+                    Style="border-radius: 50%; margin-left: 10px;"
+                    OnClick="Click_Read" />
                 </div>
 
             }
@@ -108,7 +177,7 @@
             <AuthorizeView>
                 <Authorized>
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
-                             AriaLabel="Open user menu">
+                    AriaLabel="Open user menu">
 
                         <MudMenuItem @onclick="NavigateToProfile">Hồ sơ</MudMenuItem>
                         <MudMenuItem @onclick="NavigateToDonhang">Đơn hàng</MudMenuItem>
@@ -117,7 +186,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
-                             AriaLabel="Open user menu">
+                    AriaLabel="Open user menu">
                         <MudMenuItem @onclick="() => NavigateToLogin()">Đăng nhập</MudMenuItem>
                         <MudMenuItem @onclick="() => NavigateToRegister()">Đăng kí</MudMenuItem>
 
@@ -126,7 +195,7 @@
             </AuthorizeView>
             <!-- Nút chuyển đổi chế độ sáng/tối -->
             <MudIconButton Icon="@DarkLightModeButtonIcon" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-            <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+
         </MudAppBar>
 
         <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
@@ -147,6 +216,67 @@
 <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 
 @code {
+
+    private bool IsListening { get; set; } = false;
+
+
+    // static string? InputValue { get; set; }
+    private void ClearText()
+    {
+        searchQuery = string.Empty;  // Xóa nội dung
+    }
+
+    async Task Click_Read()
+    {
+        try
+        {
+            IsListening = true;
+            StateHasChanged();
+
+            var speechConfig = SpeechConfig.FromSubscription("70Q0JqC1cKSCO1LW8xzsqfbLxX2doACmzJsWuBKEPUvEAhXyMSo2JQQJ99BAAC3pKaRXJ3w3AAAYACOGpXYT", "eastasia");
+            speechConfig.SpeechRecognitionLanguage = "vi-VN";
+
+            using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+            using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+            var speechRecognitionResult = await speechRecognizer.RecognizeOnceAsync();
+            OutSpeechRecognitionoResult(speechRecognitionResult);
+        }
+        finally
+        {
+            IsListening = false;
+            StateHasChanged();
+        }
+    }
+
+    void OutSpeechRecognitionoResult(SpeechRecognitionResult speechRecognitionResult)
+    {
+        switch (speechRecognitionResult.Reason)
+        {
+            case ResultReason.RecognizedSpeech:
+                searchQuery = speechRecognitionResult.Text.TrimEnd('.', ',', ';', ':', '!', '?');
+                IsListening = false; // Tắt trạng thái "Đang nghe"
+                StateHasChanged();
+
+                // voice Search ....
+                NavigateToSearchPage();
+                break;
+            case ResultReason.NoMatch:
+                searchQuery = "Xin vui lòng thử lại!!!";
+                break;
+            case ResultReason.Canceled:
+                var cancellation = CancellationDetails.FromResult(speechRecognitionResult);
+                searchQuery = "Cannnnnn: Lí do=" + cancellation.Reason;
+                if (cancellation.Reason == CancellationReason.Error)
+                {
+                    Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                    Console.WriteLine($"CANCELED: ErrorDetails ={cancellation.ErrorDetails}");
+                    Console.WriteLine($"CANCELED: check lại key và region");
+                }
+                break;
+        }
+        //searchQuery = InputValue;
+    }
+
     private bool IsHomePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri) == "";
 
 
@@ -183,7 +313,7 @@
 
         navigationManager.NavigateTo("/donhang");
     }
-    private async Task SetValueAsync(string? value)
+    private async Task SetValueAsync(string value)
     {
         searchQuery = value;
         await SearchProductsAsync();
@@ -211,10 +341,7 @@
         }
     }
 
-    private async Task OnSearchQueryChanged()
-    {
-        await SearchProductsAsync();
-    }
+    private async Task OnSearchQueryChanged() => await SearchProductsAsync();
 
     private async Task SearchProductsAsync()
     {

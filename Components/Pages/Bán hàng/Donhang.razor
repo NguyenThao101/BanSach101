@@ -13,37 +13,46 @@
 @inject ReviewService ReviewService
 
 <style>
-    .clickable-cell {
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-        .clickable-cell:hover {
-            color: #f0f0f0;
-        }
-
-    .mud-large {
-        width: 100%;
-        max-width: 80em !important;
-    }
-
     .img-product {
         max-width: 100px;
-        width: fit-content;
+        width: 100%;
     }
 
-    .img-show {
-        max-width: 100px;
+    .fixed-layout {
+        display: grid;
+        grid-template-columns: 120px auto 100px 150px 150px;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .status-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        height: 100%;
+    }
+
+    .status-pending {
+        color: #e74c3c; /* Đỏ */
+        font-weight: bold;
+    }
+
+    .status-completed {
+        color: #27ae60; /* Xanh lá */
+        font-weight: bold;
     }
 </style>
-
-<!-- Hiển thị danh sách hóa đơn -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
 @foreach (var groupedProducts in products.Where(p => p.Bills.UserID == userId).GroupBy(p => p.Bills.BillId))
 {
     var bill = groupedProducts.First().Bills;
 
     <MudPaper Elevation="3" Style="margin:20px; padding:20px">
-
+        <!-- Header -->
         <MudGrid Style="margin-bottom: 20px">
             <MudItem md="6" xs="6">
                 <MudItem><strong>Mã hóa đơn: @groupedProducts.Key</strong></MudItem>
@@ -51,41 +60,59 @@
             </MudItem>
             <MudSpacer />
             <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right">
-                <strong>@bill.Status</strong>
+                <strong class="@(bill.Status == "Hoàn thành" ? "status-completed" : "status-pending")">
+                    @bill.Status
+                </strong>
             </MudItem>
         </MudGrid>
 
-        <table>
-            <tbody>
-                @foreach (var context in groupedProducts)
-                {
-                    <tr style="margin-bottom:10px">
-                        <td>
-                            <img src="@context.Product.Img" width="100" />
-                        </td>
-                        <td>@context.Product.ProductName</td>
-                        <td>@context.Quantity</td>
-                        <td>@context.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))</td>
-                        <td>
-                            @if (@bill.Status == "Hoàn thành")
-                            {
-                                <MudButton Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small" @onclick="() => OpenReviewDialog(bill.Status,context.ProductBillId,context.Product.ProductId)">
-                                    Đánh giá
-                                </MudButton>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <!-- Product List -->
+        @foreach (var context in groupedProducts)
+        {
+            <div class="fixed-layout" style="margin-bottom:10px">
+                <!-- Ảnh sản phẩm -->
+                <img src="@context.Product.Img" class="img-product" />
 
-        <MudGrid>
-            <MudItem md="12" xs="12" Style="text-align:right">Ngày giao: @bill.Updated_at</MudItem>
-            <MudItem md="6" xs="6"><strong>Tổng tiền:</strong></MudItem>
-            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right"><strong>@bill.TotalPrice</strong></MudItem>
+                <!-- Tên sản phẩm -->
+                <div>@context.Product.ProductName</div>
+
+                <!-- Số lượng -->
+                <div>@context.Quantity</div>
+
+                <!-- Giá -->
+                <div class="text-right">
+                    @context.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"))
+                </div>
+
+                <!-- Nút hành động -->
+                <div class="text-right">
+                    @if (bill.Status == "Hoàn thành")
+                    {
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Small"
+                                   @onclick="() => OpenReviewDialog(bill.Status, context.ProductBillId, context.Product.ProductId)">
+                            Đánh giá
+                        </MudButton>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Footer -->
+        <MudGrid Style="margin-top: 20px;">
+            <MudItem md="6" xs="6">
+                Ngày giao: @bill.Updated_at
+            </MudItem>
+            <MudSpacer />
+            <MudItem md="6" xs="6" Style="color:#e74c3c; text-align:right">
+                <strong>Tổng tiền: @bill.TotalPrice</strong>
+            </MudItem>
         </MudGrid>
     </MudPaper>
 }
+
+</MudContainer>
 
 @code {
     private int userId;

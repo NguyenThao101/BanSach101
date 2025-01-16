@@ -8,9 +8,10 @@
 @using BanSach.Components.Model.ViewModel;
 
 @using System.Globalization
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
 <MudGrid Class="pt-4">
-     <MudItem xs="1" sm="1"></MudItem>
-    <MudItem xs="10" sm="10">
+
+    <MudItem xs="12" sm="12">
         @if (listProductUserBill != null)
         {
             <MudGrid>
@@ -106,7 +107,7 @@
     </MudItem>
 </MudGrid>
 
-
+</MudContainer>
 @code {
     [Parameter] public int productBillId { get; set; }
     private Product_bill productBill;

@@ -16,7 +16,7 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         this.localStorageService = localStorageService;
         this.http = http;
     }
-
+  
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         // Nếu chưa khởi tạo hoặc đang prerendering, trả về một AuthenticationState mặc định

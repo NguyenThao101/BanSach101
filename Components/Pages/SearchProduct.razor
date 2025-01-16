@@ -1,6 +1,7 @@
 ﻿@page "/SearchProduct"
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory ClientFactory
+@using System.Globalization
 
 <MudContainer>
     <MudText Typo="Typo.h4" Style="margin-bottom: 20px;">
@@ -8,38 +9,21 @@
     </MudText>
 
     <MudList T="Product" Class="mud-elevation-2">
-        @if (FilteredProducts.Any())
+        @if (FilteredResult.Any())
         {
-            @foreach (var product in FilteredProducts)
+            @foreach (var product in FilteredResult)
             {
-                <MudListItem Class="product-item" Style="display: flex; align-items: center; padding: 10px;">
-                    <!-- Ảnh sản phẩm -->
-                    <MudAvatar Size="Size.Large" Image="@product.Img" Alt="Ảnh sản phẩm"
-                               Class="product-image" Style="margin-right: 10px;" />
-
-                    <!-- Thông tin sản phẩm -->
+                <MudListItem OnClick="() => NavigateToDetail(product.ProductId)" Class="product-item" Style="display: flex; align-items: center; padding: 10px;">
+      
                     <div Style="flex-grow: 1;">
-                        <MudText Typo="Typo.subtitle1" Class="product-name">
-                            <MudNavLink OnClick="() => NavigateToDetail(product.ProductId)"
-                                        Style="text-decoration: none; color: inherit;">
-                                @product.ProductName
-                            </MudNavLink>
-                        </MudText>
 
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            📖 Tác giả: <b>@product.Author</b>
+                        <MudText Typo="Typo.subtitle1" Class="product-name">@product.ProductName</MudText>
+                        <img src="@product.Img" alt="Product Image" Width="180" Height="200" Class="rounded-lg" />
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">📖 Tác giả: <b>@product.Author</b></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">🏢 Nhà xuất bản: <b>@product.Publisher</b></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary">💰 Giá: <b>@string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ</b>
                         </MudText>
-
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            🏢 Nhà xuất bản: <b>@product.Publisher</b>
-                        </MudText>
-                    </div>
-
-                    <!-- Button Xem chi tiết -->
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               OnClick="() => NavigateToDetail(product.ProductId)">
-                        Xem chi tiết
-                    </MudButton>
+                    </div>            
                 </MudListItem>
                 <MudDivider />
             }
@@ -52,24 +36,23 @@
         }
     </MudList>
 
-    <!-- Hiển thị danh sách sản phẩm liên quan nếu có -->
-    @if (AdditionalProducts.Any())
+    
+    @if (AdditionalResult.Any())
     {
         <MudText Typo="Typo.h5" Style="margin-top: 30px;">
             🔍 Sản phẩm liên quan:
         </MudText>
 
         <MudList T="Product" Class="mud-elevation-2">
-            @foreach (var product in AdditionalProducts)
+            @foreach (var product in AdditionalResult)
             {
-                <MudListItem Class="product-item" Style="display: flex; align-items: center; padding: 10px;">
+                <MudListItem OnClick="() => NavigateToDetail(product.ProductId)" Class="product-item" Style="display: flex; align-items: center; padding: 10px;">
                     <MudAvatar Size="Size.Large" Image="@product.Img" Alt="Ảnh sản phẩm"
                                Class="product-image" Style="margin-right: 10px;" />
 
                     <div Style="flex-grow: 1;">
                         <MudText Typo="Typo.subtitle1" Class="product-name">
-                            <MudNavLink OnClick="() => NavigateToDetail(product.ProductId)"
-                                        Style="text-decoration: none; color: inherit;">
+                            <MudNavLink Style="text-decoration: none; color: inherit;">
                                 @product.ProductName
                             </MudNavLink>
                         </MudText>
@@ -81,12 +64,9 @@
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             🏢 Nhà xuất bản: <b>@product.Publisher</b>
                         </MudText>
-                    </div>
 
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               OnClick="() => NavigateToDetail(product.ProductId)">
-                        Xem chi tiết
-                    </MudButton>
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary">💰 Giá: <b>@string.Format(new CultureInfo("vi-VN"), "{0:N0}", product.SellPrice) vnđ</b> </MudText>
+                    </div>
                 </MudListItem>
                 <MudDivider />
             }
@@ -95,60 +75,82 @@
 </MudContainer>
 
 @code {
-    private List<Product> FilteredProducts = new();
-    private List<Product> AdditionalProducts = new();
+    private List<Product> FilteredResult = new();
+    private List<Product> AdditionalResult = new();
     private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        // Lấy giá trị query string từ URL
+        // Lấy từ khóa tìm kiếm từ query string
         var uri = new Uri(NavigationManager.Uri);
         var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
         searchQuery = queryParams["query"] ?? string.Empty;
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
-            await SearchProductsAsync();
+            await PerformSearchAsync();
         }
     }
 
-    private async Task SearchProductsAsync()
+    private async Task PerformSearchAsync()
     {
         var httpClient = ClientFactory.CreateClient("API");
 
-        // Gửi request API để lấy danh sách sản phẩm theo searchQuery
+        
         var result = await httpClient.GetFromJsonAsync<List<Product>>(
-            $"api/search/search-product?searchQuery={searchQuery}");
+            $"api/search/search-product?searchQuery={searchQuery}") ?? new();
+        
 
-        FilteredProducts = result ?? new();
-
-        if (FilteredProducts.Any())
+        if (!result.Any())
         {
-            // Xác định loại kết quả trùng khớp
-            var matchingPublisher = FilteredProducts.FirstOrDefault(p =>
-                p.Publisher.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
-
-            var matchingAuthor = FilteredProducts.FirstOrDefault(p =>
-                p.Author.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingPublisher != null)
-            {
-                // Tìm các sản phẩm có cùng nhà xuất bản
-                AdditionalProducts = await GetAdditionalProducts("publisher", matchingPublisher.Publisher);
-            }
-            else if (matchingAuthor != null)
-            {
-                // Tìm các sản phẩm có cùng tác giả
-                AdditionalProducts = await GetAdditionalProducts("author", matchingAuthor.Author);
-            }
+            
+            FilteredResult = new();
+            AdditionalResult = new();
+            return;
         }
-    }
 
-    private async Task<List<Product>> GetAdditionalProducts(string filterType, string filterValue)
-    {
-        var httpClient = ClientFactory.CreateClient("API");
-        return await httpClient.GetFromJsonAsync<List<Product>>(
-            $"api/search/search-by-{filterType}?{filterType}={filterValue}") ?? new();
+        
+        FilteredResult = result
+            .Where(p => p.ProductName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (FilteredResult.Any())
+        {
+           
+            var firstProduct = FilteredResult.First();
+            AdditionalResult = result
+                .Where(p => p.Author == firstProduct.Author && !FilteredResult.Contains(p))
+                .ToList();
+            return;
+        }
+
+     
+        FilteredResult = result
+            .Where(p => p.Author.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (FilteredResult.Any())
+        {
+          
+            AdditionalResult = new();
+            return;
+        }
+
+        
+        FilteredResult = result
+            .Where(p => p.Publisher.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (FilteredResult.Any())
+        {
+          
+            AdditionalResult = new();
+            return;
+        }
+
+
+        FilteredResult = new();
+        AdditionalResult = new();
     }
 
     private void NavigateToDetail(int productId)
@@ -156,3 +158,4 @@
         NavigationManager.NavigateTo($"/Detail/{productId}");
     }
 }
+

@@ -21,6 +21,7 @@ namespace BanSach.Components.Controllers
         {
             var results = await _context.Products
                                          .Where(p => p.ProductName.Contains(searchQuery) ||
+                                                     p.ProductId.ToString().Contains(searchQuery) ||
                                                      p.Author.Contains(searchQuery) ||
                                                      p.Publisher.Contains(searchQuery))
                                          .ToListAsync();

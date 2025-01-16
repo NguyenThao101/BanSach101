@@ -18,49 +18,58 @@
     <MudSpacer></MudSpacer>
     <MudButton OnClick="AddProduct" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Thêm</MudButton>
 </div>
+
 <MudTable Items="@products" Filter="new Func<Product,bool>(FilterFunc1)" Dense="true" Breakpoint="Breakpoint.None" Virtualize="true"
           Style="white-space:nowrap" Bordered="true" RowClass="cursor-pointer" Striped="true" Hover="true" HorizontalScrollbar="true">
-    <ToolBarContent>        
+    <ToolBarContent>
         <MudSpacer />
         <MudTextField @bind-Value="searchString1" Placeholder="Tìm kiếm" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
     </ToolBarContent>
+
     <HeaderContent>
-        <MudTh>ID</MudTh>
-        <MudTh>Tên</MudTh>
+        <MudTh Class="rounded-tl-lg">ID</MudTh>
+        <MudTh Class="rounded-none sticky-column">Tên</MudTh>
         <MudTh>Giá bán</MudTh>
         <MudTh>Tác giả</MudTh>
         <MudTh>Danh mục</MudTh>
         <MudTh>Nhà xuất bản</MudTh>
         <MudTh>Số lượng</MudTh>
-        <MudTh>Ảnh bìa</MudTh>
+        <MudTh Class="rounded-tr-lg">Ảnh bìa</MudTh>
     </HeaderContent>
+
     <RowTemplate>
-        <MudTd DataLabel="ID">
+        <MudTd DataLabel="ID" Class="rounded-bl-lg">
             <div>@context.ProductId</div>
         </MudTd>
-        <MudTd DataLabel="Tên"><div @onclick="@(() => DetailProduct(context.ProductId))">@context.ProductName</div></MudTd>
-        <MudTd DataLabel="Giá bán">
-            <div @onclick="@(() => DetailProduct(context.ProductId))">@string.Format(new CultureInfo("vi-VN"), "{0:N0}", context.SellPrice)</div>
+        <MudTd DataLabel="Tên" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@context.ProductName</div>
         </MudTd>
-        <MudTd DataLabel="Tác giả"><div @onclick="@(() => DetailProduct(context.ProductId))">@context.Author</div></MudTd>
-        <MudTd DataLabel="Danh mục">
-            <div @onclick="@(() => DetailProduct(context.ProductId))">
-                @GetCategoryName(context.CategoryId)
-            </div>
+        <MudTd DataLabel="Giá bán" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@string.Format(new CultureInfo("vi-VN"), "{0:N0}", context.SellPrice)</div>
         </MudTd>
-        <MudTd DataLabel="Nhà xuất bản"><div @onclick="@(() => DetailProduct(context.ProductId))">@context.Publisher</div></MudTd>
-        <MudTd DataLabel="Số lượng"><div @onclick="@(() => DetailProduct(context.ProductId))">@context.Quantity</div></MudTd>
-        <MudTd DataLabel="Ảnh bìa">
+        <MudTd DataLabel="Tác giả" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@context.Author</div>
+        </MudTd>
+        <MudTd DataLabel="Danh mục" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@GetCategoryName(context.CategoryId)</div>
+        </MudTd>
+        <MudTd DataLabel="Nhà xuất bản" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@context.Publisher</div>
+        </MudTd>
+        <MudTd DataLabel="Số lượng" @onclick="@(() => DetailProduct(context.ProductId))">
+            <div>@context.Quantity</div>
+        </MudTd>
+        <MudTd DataLabel="Ảnh bìa" Class="rounded-br-lg">
             <MudImage ObjectFit="ObjectFit.Cover" Width="50" Height="30" Src="@context.Img" Class="rounded-lg" />
         </MudTd>
     </RowTemplate>
+
     <PagerContent>
-        <MudTablePager PageSize="10" @bind-PageIndex="@pageIndex" OnPageChanged="SetPage" />
+        <MudTablePager PageSize="10" @bind-PageIndex="@pageIndex" OnPageChanged="SetPage" Class="d-flex justify-center" />
     </PagerContent>
 </MudTable>
 
-<MudSpacer />
 
 @code {
     bool IsSelected = false;
