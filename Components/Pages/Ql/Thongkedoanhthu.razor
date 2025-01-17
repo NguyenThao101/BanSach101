@@ -60,7 +60,8 @@ else if (userRoleId == "3" || userRoleId == "1")
                         <MudTh>BillID</MudTh>
 
                         <MudTh>Tổng tiền</MudTh>
-                        <MudTh>Trạng thái</MudTh>
+                        <MudTh>Trạng thái thanh toán</MudTh>
+                        <MudTh>Trạng thái đơn</MudTh>
                         <MudTh>Ngày</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -152,6 +153,7 @@ else if (userRoleId == "3" || userRoleId == "1")
 
     private async Task GetBill(){
         bill = await BillService.GetBillByDay(fromDate, toDate);
+
     }
     public CultureInfo GetVietNamCulture()
     {
@@ -170,11 +172,10 @@ else if (userRoleId == "3" || userRoleId == "1")
     protected override async Task OnInitializedAsync()
     {
         users = await UserService.GetAllUser();
-        var currentDate = DateTime.Now;
+        var currentDate = DateTime.Now;      
         var result = await BillService.GetDoanhThuThangHienTai(currentDate);
-
-        duDoanDoanhThu = DuDoanDoanhThuThangToi(result.doanhThu, 0.05m);
-       
+        Console.WriteLine("doanh thu" + result);
+        duDoanDoanhThu = DuDoanDoanhThuThangToi(result.doanhThu, 0.05m);       
         await LoadBills();
     }
     private string? userRoleId;
@@ -196,23 +197,25 @@ else if (userRoleId == "3" || userRoleId == "1")
         await LoadBills();
     }
 
-    private async Task LoadBills()
+   private async Task LoadBills()
+{
+    if (fromDate.HasValue && toDate.HasValue)
     {
-        if (fromDate.HasValue && toDate.HasValue)
-        {
-            doanhThus = await BillService.GetAllBillDoanhThu(fromDate.Value, toDate.Value);
+        // Đặt thời gian của toDate là cuối ngày
+        DateTime adjustedToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
 
-            topProducts = await BillService.GetTopProducts(fromDate.Value, toDate.Value);
+        bill = await BillService.GetBillByDay(fromDate, adjustedToDate);
+        doanhThus = await BillService.GetAllBillDoanhThu(fromDate.Value, adjustedToDate);
 
-            doanhThu = doanhThus.Sum(x => x.TotalPrice);
-            doanhSo = topProducts.Sum(b => b.TotalQuantity);
-            soDon = doanhThus.Count();
-          
-            await GetBill();
-            StateHasChanged(); 
+        topProducts = await BillService.GetTopProducts(fromDate.Value, adjustedToDate);
 
-        }
+        doanhThu = doanhThus.Sum(x => x.TotalPrice);
+        doanhSo = topProducts.Sum(b => b.TotalQuantity);
+        soDon = doanhThus.Count();
+        StateHasChanged();
     }
+}
+
     // DÙNG PHƯƠNG PHÁP Linear Growth VỚI TỈ LỆ TĂNG TRƯỞNG LÀ 5%
     private decimal DuDoanDoanhThuThangToi(decimal doanhThuHienTai, decimal tiLeTangTruong)
     {

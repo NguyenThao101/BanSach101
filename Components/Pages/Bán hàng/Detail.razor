@@ -26,6 +26,7 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory ClientFactory
 @using System.Globalization
+@inject CustomAuthStateProvider AuthStateProvider
 <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
     <MudGrid Class="pt-2" @key="@productId">
         <MudItem xs="12" sm="12">
@@ -88,20 +89,25 @@
                                 </MudItem>
 
                                 <!-- Số lượng và nút bấm -->
-                                <MudItem>
-                                    <div style="display: flex; align-items: center;">
-                                        📦 Số lượng:
-                                        <MudNumericField T="int" @bind-Value="@quantity" Min="0" Style="margin-left: 10px; width: 50px;" />
-                                    </div>
-                                </MudItem>
-                                <MudItem>
-                                    <MudButton Class="pt-1" Style="padding:10px" Variant="Variant.Filled" OnClick="@(() => HandleBuyNow(product))">
-                                        🛒 Mua hàng
-                                    </MudButton>
-                                    <MudButton Class="pt-1" Style="padding:10px; margin-left: 10px;" Variant="Variant.Filled" OnClick="AddCart">
-                                        ➕ Thêm vào giỏ hàng
-                                    </MudButton>
-                                </MudItem>
+                               
+                                @if (userRoleId == "2")
+                                {
+                                    <MudItem>
+                                        <div style="display: flex; align-items: center;">
+                                            📦 Số lượng:
+                                            <MudNumericField T="int" @bind-Value="@quantity" Min="0" Style="margin-left: 10px; width: 50px;" />
+                                        </div>
+                                    </MudItem>
+                                    <MudItem>
+                                        <MudButton Class="pt-1" Style="padding:10px" Variant="Variant.Filled" OnClick="@(() => HandleBuyNow(product))">
+                                            🛒 Mua hàng
+                                        </MudButton>
+                                        <MudButton Class="pt-1" Style="padding:10px; margin-left: 10px;" Variant="Variant.Filled" OnClick="AddCart">
+                                            ➕ Thêm vào giỏ hàng
+                                        </MudButton>
+                                    </MudItem>
+                                }
+                                
                             </MudGrid>
                         </div>
                     </MudItem>
@@ -257,7 +263,27 @@
     private bool isInitialized = false;
     private TopProductViewModel productViewModel = new TopProductViewModel();
     private double averageRating;
+    private string userRoleId;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId = user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+        }
+    }
 
 
     protected override async Task OnParametersSetAsync()
@@ -296,7 +322,7 @@
 
             // await LoadProductDetailAsync();
         }
-        discounts = await DiscountService.GetAllItem();
+        discounts = await DiscountService.GetAllDiscountsTodayAsync();
     }
     public async Task<Product> GetProduct()
     {

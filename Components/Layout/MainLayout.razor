@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CustomAuthStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject NavigationManager navigationManager
 
@@ -15,75 +16,72 @@
 <style>
 
     .container-search {
-    display: flex;
-    flex: 1 1 auto;
-    position: relative;
+        display: flex;
+        flex: 1 1 auto;
+        position: relative;
     }
 
     .search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background-color: white;
-    border: 1px solid #ddd;
-    z-index: 999;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;      
+        z-index: 999;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .mud-list-item {
-    padding: 8px;
-    cursor: pointer;
+        padding: 8px;
+        cursor: pointer;
     }
 
-    .mud-list-item:hover {
-    background-color: #f4f4f4;
-    }
+        .mud-list-item:hover {
+            background-color: #f4f4f4;
+        }
 
     .outlined-text-field .mud-input {
-    border-radius: 10px; /* Bo góc viền */
-    border: 2px solid #ccc; /* Màu viền */
-    padding: 0 16px; /* Cách lề bên trong */
-    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Hiệu ứng mượt */
-    background-color: #ffffff; /* Màu nền */
+        border-radius: 10px; /* Bo góc viền */
+        border: 2px solid #ccc; /* Màu viền */
+        padding: 0 16px; /* Cách lề bên trong */
+        transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Hiệu ứng mượt */
+        background-color: #ffffff; /* Màu nền */
     }
 
-    .outlined-text-field .mud-input:hover {
-    border-color: #9e9e9e; /* Màu viền khi hover */
-    }
+        .outlined-text-field .mud-input:hover {
+            border-color: #9e9e9e; /* Màu viền khi hover */
+        }
 
-    .outlined-text-field .mud-input:focus-within {
-    border-color: #6200ea; /* Màu viền khi focus */
-    box-shadow: 0 0 8px rgba(98, 0, 234, 0.5); /* Hiệu ứng shadow */
-    }
+        .outlined-text-field .mud-input:focus-within {
+            border-color: #6200ea; /* Màu viền khi focus */
+            box-shadow: 0 0 8px rgba(98, 0, 234, 0.5); /* Hiệu ứng shadow */
+        }
 
     .outlined-text-field .mud-input-underline {
-    display: none; /* Ẩn thanh underline bên dưới */
+        display: none; /* Ẩn thanh underline bên dưới */
     }
 
     #speech-popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 20px 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    font-size: 16px;
-    z-index: 1000;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    opacity: 0;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        font-size: 16px;
+        z-index: 1000;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        opacity: 0;
     }
 
-    #speech-popup[style*="block"] {
-    opacity: 1;
-    }
-
-
+        #speech-popup[style*="block"] {
+            opacity: 1;
+        }
 
 </style>
 <CascadingAuthenticationState>
@@ -94,11 +92,20 @@
     <MudLayout>
         <!-- Thanh AppBar của MainLayout -->
         <MudAppBar Elevation="1">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            <AuthorizeView>
+                <Authorized>
+                    @if (userRoleId != "2")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+                    }
+                </Authorized>
+
+            </AuthorizeView>
+            
             <MudText Typo="Typo.h5" Class="ml-3">
-                <a href="/" 
-                >🏠 Nhà Sách</a>
+                <a href="/" style="text-decoration: none; color:white ;">🏠 Nhà Sách</a>
             </MudText>
+            
             <MudSpacer />
             <!-- Bắt đầu phần AppBar từ Home.razor -->
             @*   <MudTextField T="string" Icon="@Icons.Material.Filled.Search" Placeholder="Tìm kiếm..."
@@ -113,20 +120,20 @@
 
                 <div class="container-search" style="display: flex; align-items: center;">
                     <MudTextField T="string"
-                    Icon="@Icons.Material.Filled.Search"
-                    Placeholder="Tìm kiếm..."
-                    Text="@searchQuery"
-                    TextChanged="this.SetValueAsync"
-                    Style="margin: 0 5px; height: 35px; font-size: 14px; color: #000000;"
-                    Immediate="true"
-                    Class="outlined-text-field"
-                    Variant="Variant.Outlined"
-                    Adornment="Adornment.End"
-                    AdornmentIcon="@Icons.Material.Filled.Clear"  
-                    AdornmentColor="Color.Secondary"
-                    Dense="true"
-                    OnFocus="OnFocus" 
-                    OnAdornmentClick="ClearText" />
+                                  Icon="@Icons.Material.Filled.Search"
+                                  Placeholder="Tìm kiếm..."
+                                  Text="@searchQuery"
+                                  TextChanged="this.SetValueAsync"
+                                  Style="margin: 0 5px; height: 35px; font-size: 14px; color: #000000;"
+                                  Immediate="true"
+                                  Class="outlined-text-field"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Filled.Clear"
+                                  AdornmentColor="Color.Secondary"
+                                  Dense="true"
+                                  OnFocus="OnFocus"
+                                  OnAdornmentClick="ClearText" />
 
                     @if (!string.IsNullOrWhiteSpace(searchQuery) && FilteredProducts.Any())
                     {
@@ -146,20 +153,20 @@
                     @if (!string.IsNullOrWhiteSpace(searchQuery))
                     {
                         <MudButton Variant="Variant.Filled"
-                        Color="Color.Primary"
-                        StartIcon="@Icons.Material.Filled.Search"
-                        OnClick="NavigateToSearchPage"
-                        Style="padding: 4px 10px; font-size: 12px; border-radius: 8px; font-weight: bold;"
-                        Elevation="2">
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="NavigateToSearchPage"
+                                   Style="padding: 4px 10px; font-size: 12px; border-radius: 8px; font-weight: bold;"
+                                   Elevation="2">
                             Tìm kiếm
                         </MudButton>
 
                     }
 
                     <MudIconButton Icon="@Icons.Material.Filled.Mic"
-                    Color="Color.Primary"
-                    Style="border-radius: 50%; margin-left: 10px;"
-                    OnClick="Click_Read" />
+                                   Color="Color.Primary"
+                                   Style="border-radius: 50%; margin-left: 10px;"
+                                   OnClick="Click_Read" />
                 </div>
 
             }
@@ -173,11 +180,11 @@
             @*  <MudText Class="ml-4">
                 <MudLink Href="/qna" Class="mud-link">Hỏi Đáp</MudLink>
             </MudText> *@
-            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Href="/cart" />
+            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" style="color:white" Href="/cart" />
             <AuthorizeView>
                 <Authorized>
-                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
-                    AriaLabel="Open user menu">
+                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" style="color:white"
+                             AriaLabel="Open user menu">
 
                         <MudMenuItem @onclick="NavigateToProfile">Hồ sơ</MudMenuItem>
                         <MudMenuItem @onclick="NavigateToDonhang">Đơn hàng</MudMenuItem>
@@ -186,7 +193,7 @@
                 </Authorized>
                 <NotAuthorized>
                     <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
-                    AriaLabel="Open user menu">
+                             AriaLabel="Open user menu">
                         <MudMenuItem @onclick="() => NavigateToLogin()">Đăng nhập</MudMenuItem>
                         <MudMenuItem @onclick="() => NavigateToRegister()">Đăng kí</MudMenuItem>
 
@@ -280,11 +287,12 @@
     private bool IsHomePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri) == "";
 
 
-    private bool _drawerOpen = true;
+    private bool _drawerOpen = false;
     private bool _isDarkMode = true;
     private MudTheme? _theme = null;
     private string? _value;
     private string? _result;
+    private string userRoleId;
 
     private void NavigateToSearchPage()
     {
@@ -302,6 +310,10 @@
     private void NavigateToRegister()
     {
         NavigationManager.NavigateTo("/register");
+    }
+    private void NavigateTohome()
+    {
+        NavigationManager.NavigateTo("/");
     }
     private void NavigateToProfile()
     {
@@ -383,6 +395,21 @@
             // Xử lý hoàn thành prerendering và khởi tạo trạng thái xác thực
             ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyPrerenderCompleted();
             ((CustomAuthStateProvider)AuthenticationStateProvider).InitializeAuthenticationStateAsync();
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Trích xuất RoleId từ Claims
+            userRoleId =  user.Claims.FirstOrDefault(c => c.Type == "RoleId")?.Value;
+
+            // Debug thông tin RoleId
+            if (!string.IsNullOrEmpty(userRoleId))
+            {
+                Console.WriteLine($"RoleId: {userRoleId}");
+            }
+
+            StateHasChanged(); // Cập nhật giao diện
+
         }
     }
     private void DrawerToggle()

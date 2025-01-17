@@ -50,21 +50,7 @@ namespace BanSach.Components.Controllers
             return Ok(response);
 
         }
-        [HttpPost("change-password"), Authorize]
-        public async Task<ActionResult<ServiceResponse<bool>>> ChangePassword([FromBody] UserChangePassword request)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var response = await authService.ChangePassword(int.Parse(userId), request.Password);
-
-            if (!response.Success)
-            {
-                return BadRequest(response);
-            }
-
-            return Ok(response);
-        }
-
-
+      
 
 
     }

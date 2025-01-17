@@ -1,79 +1,138 @@
 ﻿@page "/profile"
-@inject IAuthService AuthService
-@attribute [Authorize]
+@using BanSach.Components.Model
+@inject CustomAuthStateProvider AuthenticationStateProvider
+@using BanSach.Components.Data
+@inject AppDbContext _dbContext
+@inject IDialogService DialogService
+@using System.Security.Claims
+@using MudBlazor
 
-<MudPaper Class="pa-4">
-    <AuthorizeView>
-        <Authorized Context="authContext">
-            <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-                <MudText Typo="Typo.h4" GutterBottom>
-                    Xin chào, <i>@authContext.User.Identity.Name</i>!
-                </MudText>
+<h3>Thông tin người dùng</h3>
 
-                <!-- Đổi mật khẩu -->
-                <MudDivider Class="my-4" />
-                <MudText Typo="Typo.h5" GutterBottom>
-                    Đổi mật khẩu
-                </MudText>
+@if (userInfo != null)
+{
+    <div>
+        <p><strong>Email:</strong> @userInfo.Email</p>
+        <p>
+            <strong>Mật khẩu:</strong>
+            @if (showPassword)
+            {
+                <span>@userInfo.Password</span>
+            }
+            else
+            {
+                <span>********</span>
+            }
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" OnClick="TogglePasswordVisibility" />
+        </p>
 
-                <MudForm @ref="form" OnValidSubmit="ChangePassword">
-                    <MudTextField @bind-Value="request.Password"
-                                  Label="Mật khẩu mới"
-                                  Type="password"
-                                  Required="true"
-                                  Class="mb-3" />
-                    <MudTextField @bind-Value="request.ConfirmPassword"
-                                  Label="Xác nhận mật khẩu"
-                                  Type="password"
-                                  Required="true"
-                                  Class="mb-3" />
-                    <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth>
-                        Đổi mật khẩu
-                    </MudButton>
-                </MudForm>
+        <!-- Password Change Form -->
+        <h4>Đổi mật khẩu</h4>
+        <MudTextField @bind-Value="oldPassword" Label="Mật khẩu cũ" Type="MudBlazor.InputType.Password" Required="true" Class="mud-textfield" />
+        <MudTextField @bind-Value="newPassword" Label="Mật khẩu mới" Type="MudBlazor.InputType.Password" Required="true" Class="mud-textfield" />
+        <MudTextField @bind-Value="confirmNewPassword" Label="Xác nhận mật khẩu mới" Type="MudBlazor.InputType.Password" Required="true" Class="mud-textfield" />
+        <MudButton OnClick="ChangePassword" Color="Color.Primary" Class="mud-button">Đổi mật khẩu</MudButton>
 
-                @if (!string.IsNullOrEmpty(message))
-                {
-                    <MudAlert Severity="Severity.Info" Elevation="1" Class="mt-3">
-                        @message
-                    </MudAlert>
-                }
-            </MudContainer>
-        </Authorized>
-        <NotAuthorized>
-            <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5">
-                <MudAlert Severity="Severity.Error" Elevation="2">
-                    <MudText Typo="Typo.h6" GutterBottom>
-                        Bạn chưa được cấp quyền để xem trang này.
-                    </MudText>
-                    <MudText>
-                        Vui lòng
-                        <MudLink Href="login">đăng nhập</MudLink>
-                        hoặc
-                        <MudLink Href="register">đăng ký</MudLink>
-                        để tiếp tục.
-                    </MudText>
-                </MudAlert>
-            </MudContainer>
-        </NotAuthorized>
-    </AuthorizeView>
-</MudPaper>
 
+
+    </div>
+}
+else
+{
+    <p>Đang tải thông tin...</p>
+}
 @code {
-    private MudForm form;
-    private UserChangePassword request = new UserChangePassword();
-    private string message = string.Empty;
+    private int userId;
+    private User userInfo;
+    private bool showPassword = false;
+    private string oldPassword = "";
+    private string newPassword = "";
+    private string confirmNewPassword = "";
 
-    private async Task ChangePassword()
+    protected override async Task OnInitializedAsync()
     {
-        if (form.IsValid)
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(userIdClaim, out var parsedUserId))
         {
-            var result = await AuthService.ChangePassword(request);
-            message = result.Message;
+            userId = parsedUserId;
         }
         else
         {
-            message = "Vui lòng nhập đầy đủ thông tin.";
+            userId = 0;
+        }
+
+        userInfo = await GetUserInfo(userId);
+    }
+
+    private async Task<User> GetUserInfo(int userId)
+    {
+        try
+        {
+            var user = await _dbContext.Users
+                .Where(u => u.UserId == userId)
+                .FirstOrDefaultAsync();
+
+            return user;
+        }
+        catch (Exception ex)
+        {
+            DialogService.ShowMessageBox("Lỗi", $"Không thể tải thông tin người dùng: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task ChangePassword()
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmNewPassword)
+        {
+            DialogService.ShowMessageBox("Lỗi", "Mật khẩu mới không hợp lệ hoặc xác nhận mật khẩu không khớp.");
+            return;
+        }
+
+        if (userInfo.Password != oldPassword)  // You should compare with the hashed password in a real-world scenario.
+        {
+            DialogService.ShowMessageBox("Lỗi", "Mật khẩu cũ không đúng.");
+            return;
+        }
+
+        // Hash the new password
+        var newPasswordHash = HashPassword(newPassword);
+
+        try
+        {
+            // Update password in the database
+            userInfo.Password = newPassword;
+            userInfo.PasswordHash = newPasswordHash.Hash;
+            userInfo.PasswordSalt = newPasswordHash.Salt;
+            userInfo.Updated = DateTime.Now;
+
+            _dbContext.Users.Update(userInfo);
+            await _dbContext.SaveChangesAsync();
+
+            DialogService.ShowMessageBox("Thành công", "Mật khẩu đã được cập nhật.");
+        }
+        catch (Exception ex)
+        {
+            DialogService.ShowMessageBox("Lỗi", $"Không thể đổi mật khẩu: {ex.Message}");
+        }
+    }
+
+    private (byte[] Hash, byte[] Salt) HashPassword(string password)
+    {
+        using (var hmac = new System.Security.Cryptography.HMACSHA512())
+        {
+            var salt = hmac.Key;
+            var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            return (hash, salt);
         }
     }
 }

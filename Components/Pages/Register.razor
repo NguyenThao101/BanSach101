@@ -1,6 +1,7 @@
 ﻿@page "/register"
 @inject IAuthService AuthService
 @using BanSach.Components.Model
+@inject NavigationManager NavigationManager
 <PageTitle>WEB BÁN SÁCH - Đăng ký</PageTitle>
 
 <body>
@@ -18,11 +19,11 @@
                     <ValidationMessage For="@(() => user.Email)" />
                 </div>
                 <div class="input-group">
-                    <label for="password">
-                        <i class="fas fa-lock"></i>Username
+                    <label for="username">
+                        <i class="fas fa-envelope"></i> Username
                     </label>
-                    <InputText id="password" @bind-Value="user.Password" class="input-field" placeholder="Nhập username" type="password" />
-                    <ValidationMessage For="@(() => user.Password)" />
+                    <InputText id="username" @bind-Value="user.Username" class="input-field" placeholder="Nhập tên người dùng" />
+                    <ValidationMessage For="@(() => user.Username)" />
                 </div>
                 <div class="input-group">
                     <label for="password">
@@ -39,7 +40,7 @@
                     <ValidationMessage For="@(() => user.ConfirmPassword)" />
                 </div>
                 <button type="submit" class="btn-register">Đăng ký</button>
-               
+
                 <div class="error-message">@message</div>
             </EditForm>
             <footer>
@@ -181,6 +182,7 @@
         var newUser = new User
             {
                 Email = user.Email,
+                Username = user.Username,
                 Password = user.Password,
                 RoleId = 2
             };
@@ -189,7 +191,8 @@
         message = result.Message;
         if (result.Success)
         {
-            messageCssClass = "text-success";
+
+            NavigationManager.NavigateTo("/login");
         }
         else
         {

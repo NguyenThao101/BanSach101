@@ -251,41 +251,7 @@ namespace BanSach.Components.Services
 
             return topProducts;
         }
-        //public async Task<(decimal doanhThu, int doanhSo, int soDon)> GetDoanhThuTheoTrangThai(DateTime currentDate, string? orderStatus = null)
-        //{
-        //    // Xác định ngày đầu và ngày cuối của tháng hiện tại
-        //    var startOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
-        //    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-
-        //    var query = from b in db.Bill
-        //                join pb in db.Product_bills on b.BillId equals pb.BillId
-        //                where b.Created_at >= startOfMonth
-        //                      && b.Created_at <= endOfMonth
-        //                      && b.ApproveBill == true
-        //                select new
-        //                {
-        //                    TotalPrice = b.TotalPrice,
-        //                    Quantity = pb.Quantity,
-        //                    BillId = b.BillId,
-        //                    Status = b.Status // Bao gồm Status trong kiểu ẩn danh
-        //                };
-
-        //    // Thêm điều kiện lọc trạng thái nếu có
-        //    if (!string.IsNullOrEmpty(orderStatus))
-        //    {
-        //        query = query.Where(b => b.Status == orderStatus);
-        //    }
-
-        //    var bills = await query.ToListAsync();
-
-        //    // Tính tổng doanh thu, doanh số và số đơn hàng
-        //    decimal doanhThu = bills.Sum(b => b.TotalPrice);
-        //    int doanhSo = bills.Sum(b => b.Quantity);
-        //    int soDon = bills.Select(b => b.BillId).Distinct().Count();
-
-        //    return (doanhThu, doanhSo, soDon);
-        //}
-
+       
         public async Task<(decimal doanhThu, int doanhSo, int soDon)> GetDoanhThuThangHienTai(DateTime currentDate)
         {
             // Xác định ngày đầu và ngày cuối của tháng hiện tại

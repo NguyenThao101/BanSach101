@@ -114,25 +114,7 @@ namespace BanSach.Components.Services
             try
             {
                 var productBill = await db.Product_bills.FirstOrDefaultAsync(pb => pb.ProductBillId == productBillId);
-
-                //if (productBill == null)
-                //{
-                //    return new PaymentResult { IsSuccess = false, Message = "Hóa đơn không tồn tại." };
-                //}
-
-                //if (paymentMethod == "Tiền mặt")
-                //{
-                //    productBill.PaymentStatus = "Đã đặt đơn và xác nhận thanh toán bằng tiền mặt khi nhận hàng.";
-                //}
-                //else if (paymentMethod == "Ví điện tử")
-                //{
-                //    productBill.PaymentStatus = "Đã đặt đơn và chờ thanh toán qua ví điện tử.";
-                //}
-                //else
-                //{
-                //    return new PaymentResult { IsSuccess = false, Message = "Phương thức thanh toán không hợp lệ." };
-                //}
-
+              
                 await db.SaveChangesAsync();
                 return new PaymentResult { IsSuccess = true, Message = "Thanh toán thành công." };
             }
@@ -182,8 +164,7 @@ namespace BanSach.Components.Services
             {
                 foreach (var productBill in productBills)
                 {
-                    productBill.BillId = billId;
-                    productBill.Updated = DateTime.Now;
+                    productBill.BillId = billId;                  
                     db.Product_bills.Update(productBill);
                 }
 

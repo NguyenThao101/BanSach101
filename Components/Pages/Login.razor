@@ -196,11 +196,15 @@
         {
             errorMessage = string.Empty;
 
+            // Lưu token vào LocalStorage
             await LocalStorage.SetItemAsync("authToken", result.Data);
+
+
             await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
-          NavigationManager.NavigateTo("/");
-        }   
+            NavigationManager.NavigateTo("/", forceLoad: true);
+
+        }
         else
         {
             errorMessage = result.Message;
