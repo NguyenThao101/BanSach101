@@ -260,8 +260,8 @@ namespace BanSach.Components.Services
 
             var bills = await (from b in db.Bill
                                join pb in db.Product_bills on b.BillId equals pb.BillId
-                               where b.Created_at >= startOfMonth
-                                     && b.Created_at <= endOfMonth
+                               where b.Updated_at >= startOfMonth
+                                     && b.Updated_at <= endOfMonth
                                      && b.Status == "Hoàn thành"
                                      && b.ApproveBill == true
                                select new
